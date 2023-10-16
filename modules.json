@@ -1,0 +1,112 @@
+{
+    "name": "nf-core/influenza",
+    "homePage": "https://github.com/nf-core/influenza",
+    "repos": {
+        "https://github.com/nf-core/modules.git": {
+            "modules": {
+                "nf-core": {
+                    "bbmap/bbduk": {
+                        "branch": "master",
+                        "git_sha": "911696ea0b62df80e900ef244d7867d177971f73"
+                    },
+                    "bcftools/consensus": {
+                        "branch": "master",
+                        "git_sha": "78cf39939fbe160a1410c44a6c5946f9a4c56e7e"
+                    },
+                    "bcftools/norm": {
+                        "branch": "master",
+                        "git_sha": "78cf39939fbe160a1410c44a6c5946f9a4c56e7e"
+                    },
+                    "bioawk": {
+                        "branch": "master",
+                        "git_sha": "c8e35eb2055c099720a75538d1b8adb3fb5a464c"
+                    },
+                    "blast/makeblastdb": {
+                        "branch": "master",
+                        "git_sha": "911696ea0b62df80e900ef244d7867d177971f73"
+                    },
+                    "bwamem2/index": {
+                        "branch": "master",
+                        "git_sha": "5e34754d42cd2d5d248ca8673c0a53cdf5624905"
+                    },
+                    "bwamem2/mem": {
+                        "branch": "master",
+                        "git_sha": "653588be2a4aadab487b530643dbc9baf7a485c4"
+                    },
+                    "csvtk/concat": {
+                        "branch": "master",
+                        "git_sha": "911696ea0b62df80e900ef244d7867d177971f73"
+                    },
+                    "custom/dumpsoftwareversions": {
+                        "branch": "master",
+                        "git_sha": "5e34754d42cd2d5d248ca8673c0a53cdf5624905"
+                    },
+                    "fastp": {
+                        "branch": "master",
+                        "git_sha": "1e49f31e93c56a3832833eef90a02d3cde5a3f7e"
+                    },
+                    "fastqc": {
+                        "branch": "master",
+                        "git_sha": "5e34754d42cd2d5d248ca8673c0a53cdf5624905"
+                    },
+                    "freebayes": {
+                        "branch": "master",
+                        "git_sha": "1630b6b4479515fe2a577652cbccf75864fb7822"
+                    },
+                    "gawk": {
+                        "branch": "master",
+                        "git_sha": "c8e35eb2055c099720a75538d1b8adb3fb5a464c"
+                    },
+                    "gunzip": {
+                        "branch": "master",
+                        "git_sha": "c8e35eb2055c099720a75538d1b8adb3fb5a464c"
+                    },
+                    "mash/screen": {
+                        "branch": "master",
+                        "git_sha": "5e34754d42cd2d5d248ca8673c0a53cdf5624905"
+                    },
+                    "multiqc": {
+                        "branch": "master",
+                        "git_sha": "5e34754d42cd2d5d248ca8673c0a53cdf5624905"
+                    },
+                    "samtools/coverage": {
+                        "branch": "master",
+                        "git_sha": "2fe9363ae3b3ab1c79f43dae9b1a4074694c57d6"
+                    },
+                    "samtools/depth": {
+                        "branch": "master",
+                        "git_sha": "cf5b9c30a2adacc581793afb79fae5f5b50bed01"
+                    },
+                    "samtools/faidx": {
+                        "branch": "master",
+                        "git_sha": "cf5b9c30a2adacc581793afb79fae5f5b50bed01"
+                    },
+                    "samtools/index": {
+                        "branch": "master",
+                        "git_sha": "cf5b9c30a2adacc581793afb79fae5f5b50bed01"
+                    },
+                    "samtools/sort": {
+                        "branch": "master",
+                        "git_sha": "cf5b9c30a2adacc581793afb79fae5f5b50bed01"
+                    },
+                    "samtools/view": {
+                        "branch": "master",
+                        "git_sha": "c8e35eb2055c099720a75538d1b8adb3fb5a464c"
+                    },
+                    "seqkit/fx2tab": {
+                        "branch": "master",
+                        "git_sha": "0caab709e3ce515d5562209b21b46971cdd18787"
+                    },
+                    "seqkit/stats": {
+                        "branch": "master",
+                        "git_sha": "911696ea0b62df80e900ef244d7867d177971f73"
+                    },
+                    "tabix/bgziptabix": {
+                        "branch": "master",
+                        "git_sha": "c8e35eb2055c099720a75538d1b8adb3fb5a464c"
+                    }
+                }
+            }
+        }
+    }
+}

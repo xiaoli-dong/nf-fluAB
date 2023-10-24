@@ -34,13 +34,26 @@ WorkflowMain.initialise(workflow, params, log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { INFLUENZA } from './workflows/influenza'
+include { ILLUMINA } from './workflows/illumina'
 
 //
 // WORKFLOW: Run main nf-core/influenza analysis pipeline
 //
 workflow NFCORE_INFLUENZA {
-    INFLUENZA ()
+
+    //INFLUENZA ()
+       //
+    // WORKFLOW: for Illumina data
+    //
+    if (params.platform == 'illumina') {
+        ILLUMINA ()
+
+    //
+    // WORKFLOW:  for Nanopore data
+    //
+    } else if (params.platform == 'nanopore') {
+        NANOPORE ()
+    }
 }
 
 /*
@@ -49,10 +62,10 @@ workflow NFCORE_INFLUENZA {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-//
+//github.com/nf-core/rnaseq/issues/619
+////
 // WORKFLOW: Execute a single named workflow for the pipeline
-// See: https://github.com/nf-core/rnaseq/issues/619
-//
+// See: https
 workflow {
     NFCORE_INFLUENZA ()
 }

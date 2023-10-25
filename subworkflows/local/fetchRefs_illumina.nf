@@ -3,21 +3,21 @@ include { MASH_SCREEN                      } from '../../modules/nf-core/mash/sc
 include {FILTERMASH} from '../../modules/local/filtermash'
 include { SEQKIT_GREP                      } from '../../modules/local/seqkit/grep'
 
-workflow FETCH_REFERENCES {   
+workflow fetchRefs_illumina {   
 
     take:
         reads
         mash_db
         mash_db_fasta
-        exclude_file
 
     main:
         ch_versions = Channel.empty()
-
+        //reads.view()
+        //mash_db.view()
         //screen reads for containment of influenza segments
         MASH_SCREEN(reads,mash_db)
         ch_versions = ch_versions.mix(MASH_SCREEN.out.versions.first())
-        FILTERMASH(MASH_SCREEN.out.screen, exclude_file)
+        FILTERMASH(MASH_SCREEN.out.screen)
         ch_versions = ch_versions.mix(FILTERMASH.out.versions.first())
         
         FILTERMASH.out.screen.map{
@@ -30,15 +30,14 @@ workflow FETCH_REFERENCES {
                 a.add(n[4])
             }
             [meta, a.join(',')]
-        }
-    .set {accession_list}
+        }.set {accession_list}
 
-    SEQKIT_GREP(
-        accession_list,
-        mash_db_fasta
+        SEQKIT_GREP(
+            accession_list,
+            mash_db_fasta
 
-    )
-    ch_versions = ch_versions.mix(SEQKIT_GREP.out.versions.first())
+        )
+        ch_versions = ch_versions.mix(SEQKIT_GREP.out.versions.first())
 
     emit:
         screen = FILTERMASH.out.screen

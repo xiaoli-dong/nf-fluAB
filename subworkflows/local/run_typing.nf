@@ -5,12 +5,12 @@ workflow RUN_TYPING {
 
     take:
         fasta
-        typingdb
+        typing_db
         
     main:
         ch_versions = Channel.empty()
 
-        BLAST_MAKEBLASTDB (typingdb)
+        BLAST_MAKEBLASTDB (typing_db)
         ch_versions = ch_versions.mix(BLAST_MAKEBLASTDB.out.versions.first())
         BLAST_BLASTN(fasta, BLAST_MAKEBLASTDB.out.db)
         ch_versions = ch_versions.mix(BLAST_BLASTN.out.versions.first())

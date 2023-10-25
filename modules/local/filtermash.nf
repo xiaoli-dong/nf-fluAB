@@ -9,7 +9,7 @@ process FILTERMASH {
 
     input:
     tuple val(meta), path(screen_file)
-    path(exclude_file)
+    
     
     output:
     tuple val(meta), path("*.filtered.screen"), emit: screen
@@ -24,7 +24,7 @@ process FILTERMASH {
     def prefix = task.ext.prefix ?: "${meta.id}"
     
     """
-    filter_mash.py -i ${screen_file} -e ${exclude_file} -p ${prefix}.filtered 
+    filter_mash.py -i ${screen_file} -p ${prefix}.filtered 
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

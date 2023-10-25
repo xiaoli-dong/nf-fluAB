@@ -7,7 +7,7 @@ include {FASTP} from '../../modules/nf-core/fastp/main'
 include {SEQKIT_STATS as SEQKIT_STATS_SHORT_RAW} from '../../modules/nf-core/seqkit/stats/main'
 include {SEQKIT_STATS as SEQKIT_STATS_SHORT_QC} from '../../modules/nf-core/seqkit/stats/main'
 
-workflow RUN_ILLUMINA_QC {   
+workflow ILLUMINA_QC {   
 
     take:
         reads
@@ -20,7 +20,7 @@ workflow RUN_ILLUMINA_QC {
         ch_versions = ch_versions.mix(SEQKIT_STATS_SHORT_RAW.out.versions.first())
         
         //default
-        if ( params.short_reads_qc_tool == 'bbduk' ){
+        if ( params.illumina_reads_qc_tool == 'bbduk' ){
             BBMAP_BBDUK(reads, [])
             ch_versions = ch_versions.mix(BBMAP_BBDUK.out.versions.first())
             //get rid of zero size contig file and avoid the downstream crash
@@ -29,7 +29,7 @@ workflow RUN_ILLUMINA_QC {
                 .set { qc_reads } */
             qc_reads = BBMAP_BBDUK.out.reads
         }
-        else if ( params.short_reads_qc_tool == 'fastp'){
+        else if ( params.illumina_reads_qc_tool == 'fastp'){
             save_trimmed_fail = false
             save_merged       = false
             FASTP ( reads, [], save_trimmed_fail, save_merged )

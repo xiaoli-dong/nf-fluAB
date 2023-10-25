@@ -15,7 +15,7 @@ include {SPLITVCF as SPLITVCF_CONSENSUS_FIXED} from '../../modules/local/splitvc
 include {SEQKIT_FX2TAB as SEQKIT_FX2TAB_CONSENSUS} from '../../modules/nf-core/seqkit/fx2tab'
 
 
-workflow callConsensus {   
+workflow callConsensus_illumina {   
 
     take:
         bam

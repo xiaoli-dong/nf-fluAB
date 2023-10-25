@@ -8,21 +8,21 @@ include { BWAMEM2_INDEX} from '../../modules/nf-core/bwamem2/index/main'
 include { BWAMEM2_MEM} from '../../modules/nf-core/bwamem2/mem/main'
 
 
-workflow MAPPING {   
+workflow MAPPING_ILLUMINA {   
 
     take:
-        short_reads
-        ref
+        illumina_reads
+        fasta
     main:
         ch_versions = Channel.empty()
 
-        SAMTOOLS_FAIDX(ref)
+        SAMTOOLS_FAIDX(fasta)
         ch_versions = ch_versions.mix(SAMTOOLS_FAIDX.out.versions.first())
         
-        BWAMEM2_INDEX(ref)
+        BWAMEM2_INDEX(fasta)
         ch_versions = ch_versions.mix(BWAMEM2_INDEX.out.versions.first())
 
-        short_reads.join(BWAMEM2_INDEX.out.index).multiMap{
+        illumina_reads.join(BWAMEM2_INDEX.out.index).multiMap{
             it ->
             reads: [it[0], it[1]]
             index: [it[0], it[2]]
@@ -63,8 +63,8 @@ workflow MAPPING {
     emit:
         bam = SAMTOOLS_SORT.out.bam
         bai = SAMTOOLS_INDEX.out.bai
-        ref_fai = SAMTOOLS_FAIDX.out.fai
-        ref
+        fasta_fai = SAMTOOLS_FAIDX.out.fai
+        fasta
         coverage = SAMTOOLS_COVERAGE.out.coverage
         versions = ch_versions
         

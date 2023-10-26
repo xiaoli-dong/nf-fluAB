@@ -79,11 +79,11 @@ By default, the pipeline supports both short and long reads:
 
 ## Documentation
 
-The nf-core/influenza pipeline comes with documentation about the pipeline [usage](https://nf-co.re/influenza/usage), [parameters](https://nf-co.re/influenza/parameters) and [output](https://nf-co.re/influenza/output).
+The nf-fluAB pipeline comes with documentation about the pipeline [usage](https://nf-co.re/influenza/usage), [parameters](https://nf-co.re/influenza/parameters) and [output](https://nf-co.re/influenza/output).
 
 ## Credits
 
-nf-core/influenza was originally written by Matthew Croxen, Xiaoli Dong.
+nf-fluAB was written by Xiaoli Dong based on  Matthew Croxen's [flu pipeline written using bash script]()
 
 We thank the following people for their extensive assistance in the development of this pipeline:
 Kanti Pabbaraju

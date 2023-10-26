@@ -1,4 +1,5 @@
-# ![nf-core/influenza](docs/images/nf-influenza_logo_light.png#gh-light-mode-only) ![nf-core/influenza](docs/images/nf-influenza_logo_dark.png#gh-dark-mode-only)
+<!-- # ![nf-core/influenza](docs/images/nf-influenza_logo_light.png#gh-light-mode-only) ![nf-core/influenza](docs/images/nf-influenza_logo_dark.png#gh-dark-mode-only) -->
+# nf-fluAB
 <!--
 [![AWS CI](https://img.shields.io/badge/CI%20tests-full%20size-FF9900?labelColor=000000&logo=Amazon%20AWS)](https://nf-co.re/influenza/results)[![Cite with Zenodo](http://img.shields.io/badge/DOI-10.5281/zenodo.XXXXXXX-1073c8?labelColor=000000)](https://doi.org/10.5281/zenodo.XXXXXXX)
 

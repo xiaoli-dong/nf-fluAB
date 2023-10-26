@@ -21,9 +21,34 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 ## Pipeline summary
 
 <!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
+By default, the pipeline supports both short and long reads:
 
-1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
-2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
+- Sequence quality check and quality control
+  - Short reads
+    - Short Illumina reads quality checks ([FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
+    - Short read quality control ([fastp](https://github.com/OpenGene/fastp))
+    - Short read statistics ([seqkit stats](https://bioinf.shenwei.me/seqkit/usage/#stats))
+    
+  - Long reads
+    - Nanopore long read quality checks ([NanoPlot](https://github.com/wdecoster/NanoPlot))
+    - Nanopore long read adapter trimming ([Porechop](https://github.com/rrwick/Porechop))
+    - Nanopore long read quality and length filter ([chopper](https://github.com/wdecoster/chopper))
+    - Nanopore long read statistics ([seqkit stats](https://bioinf.shenwei.me/seqkit/usage/#stats))
+- Assembly
+  - Short read assembly 
+  - Long read assembly 
+
+- Influneza Typing
+  - blastn search ([Bakta](https://github.com/oschwengers/bakta))
+- Clade assignment
+  - nextclade
+- Summarize and generate the analysis report, software version control reports
+
+## Pipeline reference databases
+* [flu database]
+* [typing database]
+* [nextclade database]
+  
 
 ## Quick Start
 

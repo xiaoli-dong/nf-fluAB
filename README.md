@@ -36,7 +36,7 @@ By default, the pipeline supports both short and long reads:
     - Nanopore long read quality and length filter ([chopper](https://github.com/wdecoster/chopper))
     - Nanopore long read statistics ([seqkit stats](https://bioinf.shenwei.me/seqkit/usage/#stats))
 - Assembly
-  - Short read assembly (mash|seqkit|bwa|samtools|freebayes|bcftools|bioawk)
+  - Short read assembly ([mash](https://github.com/marbl/Mash)|[bwa](https://github.com/lh3/bwa)|[samtools](https://github.com/samtools/samtools)|[freebayes](https://github.com/freebayes/freebayes)|[bcftools](https://github.com/samtools/bcftools)|[bioawk](https://github.com/lh3/bioawk))
   - Long read assembly 
 
 - Influneza Typing

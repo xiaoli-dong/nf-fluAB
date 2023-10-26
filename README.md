@@ -39,7 +39,7 @@ By default, the pipeline supports both short and long reads:
   - Short read assembly ([mash](https://github.com/marbl/Mash)|[bwa](https://github.com/lh3/bwa)|[samtools](https://github.com/samtools/samtools)|[freebayes](https://github.com/freebayes/freebayes)|[bcftools](https://github.com/samtools/bcftools)|[bioawk](https://github.com/lh3/bioawk))
   - Long read assembly 
 
-- Influneza Typing
+- Flu typing
   - blastn search ([Blastn](https://blast.ncbi.nlm.nih.gov/doc/blast-help/downloadblastdata.html))
 - Clade assignment
   - nextclade

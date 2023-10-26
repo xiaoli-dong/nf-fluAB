@@ -86,6 +86,8 @@ The nf-core/influenza pipeline comes with documentation about the pipeline [usag
 nf-core/influenza was originally written by Matthew Croxen, Xiaoli Dong.
 
 We thank the following people for their extensive assistance in the development of this pipeline:
+Kanti Pabbaraju
+Anita Wong
 
 <!-- TODO nf-core: If applicable, make list of people who have also contributed -->
 

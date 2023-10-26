@@ -84,9 +84,9 @@ The nf-fluAB pipeline comes with documentation about the pipeline [usage](https:
 
 ## Credits
 
-nf-fluAB was written by Xiaoli Dong based on  Matthew Croxen's [flu pipeline written using bash script]()
+nf-fluAB was written by Xiaoli Dong based on Dr. Matthew Croxen's [flu pipeline written using bash script]()
+Extensive support was provided from other co-authors on the scientific or technical input required for the pipeline:
 
-We thank the following people for their extensive assistance in the development of this pipeline:
 - Tarah Lynch
 - Kanti Pabbaraju
 - Anita Wong

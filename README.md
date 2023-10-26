@@ -87,7 +87,7 @@ nf-fluAB was written by Xiaoli Dong based on  Matthew Croxen's [flu pipeline wri
 
 We thank the following people for their extensive assistance in the development of this pipeline:
 - Tarah Lynch
-- Pabbaraju
+- Kanti Pabbaraju
 - Anita Wong
 
 <!-- TODO nf-core: If applicable, make list of people who have also contributed -->

@@ -40,7 +40,7 @@ By default, the pipeline supports both short and long reads:
   - Long read assembly 
 
 - Influneza Typing
-  - blastn search ([Bakta](https://github.com/oschwengers/bakta))
+  - blastn search ([Blastn](https://blast.ncbi.nlm.nih.gov/doc/blast-help/downloadblastdata.html))
 - Clade assignment
   - nextclade
 - Summarize and generate the analysis report, software version control reports

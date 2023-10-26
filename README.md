@@ -84,7 +84,7 @@ The nf-fluAB pipeline comes with documentation about the pipeline [usage](https:
 
 ## Credits
 
-nf-fluAB was written by Xiaoli Dong based on Dr. Matthew Croxen's [flu pipeline written using bash script]()
+nf-fluAB was written by Xiaoli Dong. The workflow for illumina NGS analysis was mainly based on Dr. Matthew Croxen's [flu pipeline]().
 Extensive support was provided from other co-authors on the scientific or technical input required for the pipeline:
 - Dr. Matthew Croxen
 - Dr. Tarah Lynch

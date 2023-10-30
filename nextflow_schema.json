@@ -109,6 +109,15 @@
                 "flu_db_fasta"
             ],
             "properties": {
+                "illumina_reads_mapping_tool": {
+                    "type": "string",
+                    "description": "assembly reference mapping tool.",
+                    "default": "minimap2",
+                    "enum": [
+                        "minimap2",
+                        "bwa"
+                    ]
+                },
                 "min_coverage": {
                     "type": "integer",
                     "description": "freebayes require at least this coverage to process a site.",

@@ -2,10 +2,10 @@ process NEXTCLADE_RUN {
     tag "$meta.id"
     label 'process_low'
 
-    conda "bioconda::nextclade=2.2.0"
+    conda "bioconda::nextclade=2.14.0"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/nextclade:2.2.0--h9ee0642_0' :
-        'quay.io/biocontainers/nextclade:2.2.0--h9ee0642_0' }"
+        'https://depot.galaxyproject.org/singularity/nextclade:2.14.0--h9ee0642_1' :
+        'quay.io/biocontainers/nextclade:2.14.0--h9ee0642_1' }"
 
     input:
     tuple val(meta), path(fasta)

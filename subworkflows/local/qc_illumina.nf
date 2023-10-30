@@ -1,7 +1,6 @@
 
 include {FASTQC as FASTQC_RAW} from     '../../modules/nf-core/fastqc/main'
 include {FASTQC as FASTQC_QC} from      '../../modules/nf-core/fastqc/main'
-//include { BBMAP_BBDUK} from '../../modules/local/bbmap_bbduk'
 include {BBMAP_BBDUK} from      '../../modules/nf-core/bbmap/bbduk/main'
 include {FASTP} from '../../modules/nf-core/fastp/main'
 include {SEQKIT_STATS as SEQKIT_STATS_SHORT_RAW} from '../../modules/nf-core/seqkit/stats/main'

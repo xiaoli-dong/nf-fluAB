@@ -8,7 +8,12 @@ process REPORT {
         'quay.io/biocontainers/python:3.9--1' }"
 
     input:
-    tuple val(meta), path(raw_stats), path(qc_stats), path(consensus_stats), path(blastn_outfmt6), path(mapping_summary), path(nextclade_csv) 
+    tuple val(meta), path(raw_stats)
+    tuple val(meta), path(qc_stats)
+    tuple val(meta), path(consensus_stats)
+    tuple val(meta), path(blastn_outfmt6)
+    tuple val(meta), path(mapping_summary)
+    tuple val(meta), path(nextclade_csv) 
     
 
     output:
@@ -23,10 +28,8 @@ process REPORT {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    //print(nextclade_csv.getClass())
-    //print(nextclade_csv.toString())
     tsvList = nextclade_csv.join(',')
-    //print(tsvList)
+   
     
     """
     get_report.py \\

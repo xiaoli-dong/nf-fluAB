@@ -18,17 +18,7 @@ for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true
 // Check mandatory parameters
 if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
 
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    CONFIG FILES
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
 
-/* ch_multiqc_config          = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
-ch_multiqc_custom_config   = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
-ch_multiqc_logo            = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
-ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
- */
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT LOCAL MODULES/SUBWORKFLOWS
@@ -39,8 +29,12 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 //
 include { INPUT_CHECK } from '../subworkflows/local/input_check'
 include {ILLUMINA_QC} from '../subworkflows/local/qc_illumina'
-include {RUN_TYPING} from '../subworkflows/local/run_typing'
-include {callClade} from '../subworkflows/local/callClade'
+include {
+    classifier_blast;
+    classifier_nextclade;
+} from '../subworkflows/local/classifier'
+
+//include {callClade} from '../subworkflows/local/callClade'
 include { ASSEMBLY_ILLUMINA } from '../subworkflows/local/assembly_illumina'
 include { PREPARE_REFERENCES          } from '../subworkflows/local/prepare_references'
 /*
@@ -82,8 +76,8 @@ workflow ILLUMINA {
     //
     PREPARE_REFERENCES ()
     ch_versions = ch_versions.mix(PREPARE_REFERENCES.out.versions)
-    PREPARE_REFERENCES.out.ch_flu_db_fasta.view()
-    PREPARE_REFERENCES.out.ch_flu_db_msh.view()
+    //PREPARE_REFERENCES.out.ch_flu_db_fasta.view()
+    //PREPARE_REFERENCES.out.ch_flu_db_msh.view()
     //
     // SUBWORKFLOW: Read in samplesheet, validate and stage input files
     //
@@ -108,19 +102,18 @@ workflow ILLUMINA {
         CONCAT_STATS_SHORT_RAW(
             ILLUMINA_QC.out.raw_stats
                 .map { cfg, stats -> stats }.collect()
-                .map { files -> tuple([id: "illumina_reads_raw_seqstats"], files)}, 
+                .map { files -> tuple([id: "illumina_reads_raw.seqstats"], files)}, 
                 in_format, 
                 out_format
         )
         CONCAT_STATS_SHORT_QC(
             ILLUMINA_QC.out.qc_stats
                 .map { cfg, stats -> stats }.collect()
-                .map { files -> tuple([id: "illumina_reads_qc_seqstats"], files)}, 
+                .map { files -> tuple([id: "illumina_reads_qc.seqstats"], files)}, 
                 in_format, 
                 out_format 
         )
     }
-
 
     ASSEMBLY_ILLUMINA(
         illumina_reads, 
@@ -128,26 +121,50 @@ workflow ILLUMINA {
         PREPARE_REFERENCES.out.ch_flu_db_fasta
     )
     
-    RUN_TYPING(ASSEMBLY_ILLUMINA.out.consensus, PREPARE_REFERENCES.out.ch_typing_db)
-    ch_versions.mix(RUN_TYPING.out.versions)
+    classifier_blast(ASSEMBLY_ILLUMINA.out.consensus, PREPARE_REFERENCES.out.ch_typing_db)
+    ch_versions.mix(classifier_blast.out.versions)
 
-    //RUN_TYPING.out.tsv.view()
-    callClade(RUN_TYPING.out.fasta, RUN_TYPING.out.tsv)
-    //callClade.out.tsv.view()
-    ch_test = callClade.out.tsv.groupTuple()//.view()
-    ch_versions.mix(callClade.out.versions)
+   
+    ASSEMBLY_ILLUMINA.out.consensus.join(classifier_blast.out.tsv).multiMap{
+        it ->
+            consensus: [it[0], it[1]]
+            tsv: [it[0], it[2]]
+    }.set{
+        ch_input
+    }
+    classifier_nextclade(ch_input.consensus, ch_input.tsv)
+
+    ch_nextclade = classifier_nextclade.out.tsv.groupTuple()//.view()
+    ch_versions.mix(classifier_nextclade.out.versions)
     
     
     //reporting
-    ch_master = ILLUMINA_QC.out.raw_stats
+    ch_report = ILLUMINA_QC.out.raw_stats
         .join(ILLUMINA_QC.out.qc_stats)
         .join(ASSEMBLY_ILLUMINA.out.consensus_stats)
-        .join(RUN_TYPING.out.tsv)
+        .join(classifier_blast.out.tsv)
         .join(ASSEMBLY_ILLUMINA.out.mapping_summary)
-        .join(ch_test).view()
+        .join(ch_nextclade)
+        .multiMap{
+            it ->
+                raw_stats: [it[0], it[1]]
+                qc_stats: [it[0], it[2]]
+                consensus_stats: [it[0], it[3]]
+                blastn_outfmt6: [it[0], it[4]]
+                mapping_summary: [it[0], it[5]]
+                nextclade_csv: [it[0], it[6]]
+        }
     
     //s11 has empty typing output, so there is no report produced .....
-    REPORT(ch_master)
+    REPORT(
+        ch_report.raw_stats,
+        ch_report.qc_stats,
+        ch_report.consensus_stats,
+        ch_report.blastn_outfmt6,
+        ch_report.mapping_summary,
+        ch_report.nextclade_csv
+    )
+
     CONCAT_STATS_SUMMARY(
         REPORT.out.oneline_csv.map { cfg, stats -> stats }.collect()
             .map { files -> tuple([id: "summary_report"], files)}, 
@@ -160,29 +177,6 @@ workflow ILLUMINA {
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
 
-    /* //
-    // MODULE: MultiQC
-    //
-    workflow_summary    = WorkflowIllumina.paramsSummaryMultiqc(workflow, summary_params)
-    ch_workflow_summary = Channel.value(workflow_summary)
-
-    methods_description    = WorkflowIllumina.methodsDescriptionText(workflow, ch_multiqc_custom_methods_description)
-    ch_methods_description = Channel.value(methods_description)
-
-    ch_multiqc_files = Channel.empty()
-    ch_multiqc_files = ch_multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
-    ch_multiqc_files = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'))
-    ch_multiqc_files = ch_multiqc_files.mix(CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect())
-    //ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]}.ifEmpty([]))
-
-    MULTIQC (
-        ch_multiqc_files.collect(),
-        ch_multiqc_config.collect().ifEmpty([]),
-        ch_multiqc_custom_config.collect().ifEmpty([]),
-        ch_multiqc_logo.collect().ifEmpty([])
-    )
-    multiqc_report = MULTIQC.out.report.toList()
-    ch_versions    = ch_versions.mix(MULTIQC.out.versions) */
 }
 
 /*

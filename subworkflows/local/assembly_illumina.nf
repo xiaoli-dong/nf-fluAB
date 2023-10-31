@@ -86,7 +86,7 @@ workflow ASSEMBLY_ILLUMINA {
                 ch_input
             }
         MAPPING_REPORT(ch_input.screen, ch_input.coverage)
-        MAPPING_REPORT.out.csv.view()
+        //MAPPING_REPORT.out.csv.view()
 
         //variant calling
         //todo: need join before calling to make sure fasta fail are all for the correspoing samples

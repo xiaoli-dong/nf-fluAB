@@ -94,13 +94,13 @@ We thank the following people for their extensive assistance in the development 
 - Linda Lee
   
 <!-- TODO nf-core: If applicable, make list of people who have also contributed -->
-
+<!-- 
 ## Contributions and Support
 
 If you would like to contribute to this pipeline, please see the [contributing guidelines](.github/CONTRIBUTING.md).
 
 For further information or help, don't hesitate to get in touch on the [Slack `#influenza` channel](https://nfcore.slack.com/channels/influenza) (you can join with [this invite](https://nf-co.re/join/slack)).
-
+-->
 ## Citations
 
 <!-- TODO nf-core: Add citation for pipeline after first release. Uncomment lines below and update Zenodo doi and badge at the top of this file. -->

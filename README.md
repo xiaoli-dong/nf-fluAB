@@ -39,16 +39,15 @@ By default, the pipeline supports both short and long reads:
   - Short read assembly ([mash](https://github.com/marbl/Mash)|[bwa](https://github.com/lh3/bwa)|[samtools](https://github.com/samtools/samtools)|[freebayes](https://github.com/freebayes/freebayes)|[bcftools](https://github.com/samtools/bcftools)|[bioawk](https://github.com/lh3/bioawk))
   - Long read assembly 
 
-- Flu typing
-  - blastn search ([Blastn](https://blast.ncbi.nlm.nih.gov/doc/blast-help/downloadblastdata.html))
-- Clade assignment
-  - nextclade
+- Classification
+  - Flu typing: [Blastn](https://blast.ncbi.nlm.nih.gov/doc/blast-help/downloadblastdata.html) search against flu typing database
+  - Clade assignment: [nextclade](https://github.com/nextstrain/nextclade)
 - Summarize and generate the analysis report, software version control reports
 
 ## Pipeline reference databases
-* [flu database]
-* [typing database]
-* [nextclade database]
+* flu database
+* typing database
+* nextclade database
   
 
 ## Quick Start
@@ -60,7 +59,7 @@ By default, the pipeline supports both short and long reads:
 3. Download the pipeline and test it on a minimal dataset with a single command:
 
    ```bash
-   nextflow run nf-core/influenza -profile test,YOURPROFILE --outdir <OUTDIR>
+   nextflow run xiaoli-dong/influenza -profile test,YOURPROFILE --outdir <OUTDIR>
    ```
 
    Note that some form of configuration will be needed so that Nextflow knows how to fetch the required software. This is usually done in the form of a config profile (`YOURPROFILE` in the example command above). You can chain multiple config profiles in a comma-separated string.
@@ -75,13 +74,13 @@ By default, the pipeline supports both short and long reads:
    <!-- TODO nf-core: Update the example "typical command" below used to run the pipeline -->
 
    ```bash
-   nextflow run nf-core/influenza --input samplesheet.csv --outdir <OUTDIR> --genome GRCh37 -profile <docker/singularity/podman/shifter/charliecloud/conda/institute>
+   nextflow run xiaoli-dong/influenza --input samplesheet.csv --outdir <OUTDIR> -profile <docker/singularity/podman/shifter/charliecloud/conda/institute>
    ```
-
+<!--
 ## Documentation
 
 The nf-fluAB pipeline comes with documentation about the pipeline [usage](https://nf-co.re/influenza/usage), [parameters](https://nf-co.re/influenza/parameters) and [output](https://nf-co.re/influenza/output).
-
+-->
 ## Credits
 
 nf-fluAB was written by Xiaoli Dong. The workflow for illumina NGS analysis was mainly based on Dr. Matthew Croxen's [flu pipeline]().

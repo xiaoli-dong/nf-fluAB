@@ -89,8 +89,6 @@ Extensive support was provided from other co-authors on the scientific or techni
 - Dr. Tarah Lynch
 - Kanti Pabbaraju
 - Anita Wong
-
-We thank the following people for their extensive assistance in the development of this pipeline:
 - Linda Lee
   
 <!-- TODO nf-core: If applicable, make list of people who have also contributed -->

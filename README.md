@@ -101,9 +101,9 @@ If you would like to contribute to this pipeline, please see the [contributing g
 
 For further information or help, don't hesitate to get in touch on the [Slack `#influenza` channel](https://nfcore.slack.com/channels/influenza) (you can join with [this invite](https://nf-co.re/join/slack)).
 -->
-
+<!--
 ## Citations
-
+-->
 <!-- TODO nf-core: Add citation for pipeline after first release. Uncomment lines below and update Zenodo doi and badge at the top of this file. -->
 <!-- If you use  nf-core/influenza for your analysis, please cite it using the following doi: [10.5281/zenodo.XXXXXX](https://doi.org/10.5281/zenodo.XXXXXX) -->
 

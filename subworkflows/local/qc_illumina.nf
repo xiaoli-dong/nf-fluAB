@@ -10,6 +10,7 @@ workflow ILLUMINA_QC {
 
     take:
         reads
+        ch_flu_primers
     main:
         ch_versions = Channel.empty()
         qc_reads = reads
@@ -20,18 +21,19 @@ workflow ILLUMINA_QC {
         
         //default
         if ( params.illumina_reads_qc_tool == 'bbduk' ){
-            BBMAP_BBDUK(reads, [])
+            BBMAP_BBDUK(reads, ch_flu_primers)
             ch_versions = ch_versions.mix(BBMAP_BBDUK.out.versions.first())
             //get rid of zero size contig file and avoid the downstream crash
-            /* BBMAP_BBDUK.out.reads
-                .filter { meta, reads -> reads.countFastq() > 0 }
-                .set { qc_reads } */
-            qc_reads = BBMAP_BBDUK.out.reads
+            BBMAP_BBDUK.out.reads
+                //.filter { meta, reads -> reads.countFastq() > 0 }
+                .filter {meta, reads -> reads[0].size() > 0 && reads[0].countFastq() > 0}
+                .set { qc_reads } 
+            //qc_reads = BBMAP_BBDUK.out.reads
         }
         else if ( params.illumina_reads_qc_tool == 'fastp'){
             save_trimmed_fail = false
             save_merged       = false
-            FASTP ( reads, [], save_trimmed_fail, save_merged )
+            FASTP ( reads, ch_flu_primers, save_trimmed_fail, save_merged )
             ch_versions = ch_versions.mix(FASTP.out.versions.first())
             //get rid of zero size contig file and avoid the downstream crash
             

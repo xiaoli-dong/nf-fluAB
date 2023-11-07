@@ -1,5 +1,4 @@
 include {BLAST_BLASTN } from '../../modules/local/blast/blastn'
-include {BLAST_MAKEBLASTDB } from '../../modules/nf-core/blast/makeblastdb/main'
 
 workflow classifier_blast {   
 
@@ -9,11 +8,7 @@ workflow classifier_blast {
         
     main:
         ch_versions = Channel.empty()
-
-        BLAST_MAKEBLASTDB (typing_db)
-        ch_versions = ch_versions.mix(BLAST_MAKEBLASTDB.out.versions.first())
-
-        BLAST_BLASTN(fasta, BLAST_MAKEBLASTDB.out.db)
+        BLAST_BLASTN(fasta, typing_db)
         ch_versions = ch_versions.mix(BLAST_BLASTN.out.versions.first())
         
 
@@ -42,6 +37,11 @@ workflow classifier_nextclade {
     main:
        
         ch_versions = Channel.empty()
+        fasta.splitFasta(by: 1, file: true)
+            .set{
+                ch_fasta
+            }
+        //ch_fasta.view()
         SEGMENT2TYPEDATA(fasta, tsv)
         SEGMENT2TYPEDATA.out.out_tsv//.view()
 

@@ -9,7 +9,7 @@ process BLAST_BLASTN {
 
     input:
     tuple val(meta), path(fasta)
-    path  db
+    path  db //fasta reference file
 
     output:
     tuple val(meta), path('*.blastn.tsv'), emit: tsv
@@ -24,23 +24,12 @@ process BLAST_BLASTN {
     
 
     """
-    DB=`find -L ./ -name "*.ndb" | sed 's/\\.ndb\$//'`
-   
+    
     if [[ $fasta == *.gz ]] 
     then
-        gzip -dc $fasta | blastn \\
-            -num_threads $task.cpus \\
-            -db \$DB \\
-            -query - \\
-            $args \\
-            -out ${prefix}.blastn.tsv
+        gzip -dc $fasta | blastn -num_threads $task.cpus -subject ${db}  $args -out ${prefix}.blastn.tsv
     else
-        blastn \\
-            -num_threads $task.cpus \\
-            -db \$DB \\
-            -query $fasta \\
-            $args \\
-            -out ${prefix}.blastn.tsv
+        blastn -num_threads $task.cpus -subject ${db} -query $fasta $args -out ${prefix}.blastn.tsv
     fi
     
     

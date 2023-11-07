@@ -52,6 +52,7 @@ include {
     CSVTK_CONCAT as CONCAT_STATS_SHORT_RAW;
     CSVTK_CONCAT as CONCAT_STATS_SHORT_QC;
     CSVTK_CONCAT as CONCAT_STATS_SUMMARY;
+    CSVTK_CONCAT as CONCAT_NEXTCLADE;
     
 } from '../modules/nf-core/csvtk/concat/main'
 
@@ -91,7 +92,7 @@ workflow ILLUMINA {
     out_format = "tsv"
 
      if(!params.skip_illumina_reads_qc){
-        ILLUMINA_QC(illumina_reads)
+        ILLUMINA_QC(illumina_reads, PREPARE_REFERENCES.out.ch_flu_primers)
         ch_versions = ch_versions.mix(ILLUMINA_QC.out.versions)
         //ILLUMINA_QC.out.qc_reads.view()
         
@@ -133,10 +134,10 @@ workflow ILLUMINA {
         ch_input
     }
     classifier_nextclade(ch_input.consensus, ch_input.tsv)
+    //classifier_nextclade.out.tsv.collectFile().view()
 
     ch_nextclade = classifier_nextclade.out.tsv.groupTuple()//.view()
     ch_versions.mix(classifier_nextclade.out.versions)
-    
     
     //reporting
     ch_report = ILLUMINA_QC.out.raw_stats
@@ -144,7 +145,7 @@ workflow ILLUMINA {
         .join(ASSEMBLY_ILLUMINA.out.consensus_stats)
         .join(classifier_blast.out.tsv)
         .join(ASSEMBLY_ILLUMINA.out.mapping_summary)
-        .join(ch_nextclade)
+        .join(ch_nextclade)//.view()
         .multiMap{
             it ->
                 raw_stats: [it[0], it[1]]
@@ -152,10 +153,11 @@ workflow ILLUMINA {
                 consensus_stats: [it[0], it[3]]
                 blastn_outfmt6: [it[0], it[4]]
                 mapping_summary: [it[0], it[5]]
-                nextclade_csv: [it[0], it[6]]
-        }
+                nextclade_csv: it[6].join(',')
+        } 
     
     //s11 has empty typing output, so there is no report produced .....
+    //REPORT(ch_report)
     REPORT(
         ch_report.raw_stats,
         ch_report.qc_stats,
@@ -163,7 +165,7 @@ workflow ILLUMINA {
         ch_report.blastn_outfmt6,
         ch_report.mapping_summary,
         ch_report.nextclade_csv
-    )
+    ) 
 
     CONCAT_STATS_SUMMARY(
         REPORT.out.oneline_csv.map { cfg, stats -> stats }.collect()

@@ -11,6 +11,16 @@ import json
 
 
 def parse_seqkit_stats_file(path_to_file, paired_end):
+    if path_to_file is None:
+        seqstats = {"total_reads": "na", "total_bases": "na", "q20_rate": "na", "q30_rate": "na"}
+        if paired_end:
+            seqstats["read1_avg_len"] = "na"
+            seqstats["read2_avg_len"] = "na"
+        else:
+            seqstats["read_avg_len"] = "na"
+
+        return seqstats
+
     if os.path.exists(path_to_file) == False or os.path.isfile(path_to_file) == False:
         print(f"\nERROR: seqkit stats file {path_to_file} does not exist.\n")
         exit(1)
@@ -51,6 +61,10 @@ def parse_seqkit_stats_file(path_to_file, paired_end):
 
 def parse_map_summary_file(path_to_file):
     refs = {}
+
+    if path_to_file is None:
+        return refs
+
     if os.path.exists(path_to_file) == False or os.path.isfile(path_to_file) == False:
         print(f"\nERROR: mapping summary file {path_to_file} does not exist.\n")
         exit(1)
@@ -81,6 +95,10 @@ def parse_map_summary_file(path_to_file):
 
 def parse_seqkit_fx2tab_file(path_to_file):
     refs = {}
+
+    if path_to_file is None:
+        return refs
+
     if os.path.exists(path_to_file) == False or os.path.isfile(path_to_file) == False:
         print(f"\nERROR: coverage file {path_to_file} does not exist.\n")
         exit(1)
@@ -94,9 +112,7 @@ def parse_seqkit_fx2tab_file(path_to_file):
 
         for tsv in tsv_reader:
             id = tsv.pop("#id")
-            tsv["percent_complete"] = round(
-                100 * int(tsv["ATCG"]) / int(tsv["length"]), 2
-            )
+            tsv["percent_complete"] = round(100 * int(tsv["ATCG"]) / int(tsv["length"]), 2)
             tsv["percentN"] = round(100 * int(tsv["N"]) / int(tsv["length"]), 2)
             tsv["gene_length"] = tsv.pop("length")
             refs[id] = {}
@@ -109,6 +125,10 @@ def parse_seqkit_fx2tab_file(path_to_file):
 # blastn output: '6 std qlen slen qcovs'
 def parse_typing_file(path_to_file):
     refs = {}
+
+    if path_to_file is None:
+        return refs
+
     if os.path.exists(path_to_file) == False or os.path.isfile(path_to_file) == False:
         print(f"\nERROR: coverage file {path_to_file} does not exist.\n")
         exit(1)
@@ -164,15 +184,17 @@ def parse_typing_file(path_to_file):
 def parse_nextclade_csv_files(path_to_files):
     refs = {}
 
+    if path_to_files is None:
+        return refs
+
+    print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+    print(path_to_files)
     for path_to_file in path_to_files.split(sep=","):
-        if (
-            os.path.exists(path_to_file) == False
-            or os.path.isfile(path_to_file) == False
-        ):
-            print(f"\nERROR: nextclade csv file {path_to_files} does not exist.\n")
+        if os.path.exists(path_to_file) == False or os.path.isfile(path_to_file) == False:
+            print(f"\nERROR: nextclade csv file {path_to_file} does not exist.\n")
             exit(1)
         if os.path.getsize(path_to_file) == 0:
-            print(f"\nWarning: nextclade csv file {path_to_files} is empty.\n")
+            print(f"\nWarning: nextclade csv file {path_to_file} is empty.\n")
             # exit(1)
             continue
 
@@ -206,9 +228,7 @@ def dict_merge(*args, add_keys=True):
     merge_dicts = args[1:]
     for merge_dct in merge_dicts:
         if add_keys is False:
-            merge_dct = {
-                key: merge_dct[key] for key in set(rtn_dct).intersection(set(merge_dct))
-            }
+            merge_dct = {key: merge_dct[key] for key in set(rtn_dct).intersection(set(merge_dct))}
         for k, v in merge_dct.items():
             if not rtn_dct.get(k):
                 rtn_dct[k] = v
@@ -216,9 +236,7 @@ def dict_merge(*args, add_keys=True):
                 raise TypeError(
                     f"Overlapping keys exist with different types: original is {type(rtn_dct[k])}, new value is {type(v)}"
                 )
-            elif isinstance(rtn_dct[k], dict) and isinstance(
-                merge_dct[k], collections.abc.Mapping
-            ):
+            elif isinstance(rtn_dct[k], dict) and isinstance(merge_dct[k], collections.abc.Mapping):
                 rtn_dct[k] = dict_merge(rtn_dct[k], merge_dct[k], add_keys=add_keys)
             elif isinstance(v, list):
                 for list_value in v:
@@ -248,51 +266,51 @@ def main():
     parser.add_argument(
         "-r",
         "--raw-stats-file",
-        required=True,
+        default=None,
         help=f"Path to the raw read seqkit stats output file in tabular format\n",
     )
     parser.add_argument(
         "-q",
         "--qc-stats-file",
-        required=False,
+        default=None,
         help=f"Path to the qc read seqkit stats output file in tabular format\n",
     )
 
     parser.add_argument(
         "-f",
         "--seqkit-fx2tab-file",
-        required=False,
+        default=None,
         help=f"Path to seqkt fx2table produced stats file\n",
     )
     parser.add_argument(
         "-b",
         "--blastn-typing-file",
-        required=False,
+        default=None,
         help=f"Path to blastn produced typing file\n",
     )
     parser.add_argument(
         "-j",
         "--json-output",
-        required=False,
+        default=None,
         help=f"The output file name for the json data\n",
     )
 
     parser.add_argument(
         "-t",
         "--tsv-output",
-        required=False,
+        default=None,
         help=f"The output file name for tabular format\n",
     )
     parser.add_argument(
         "-m",
         "--mapping-summary-file",
-        required=False,
+        default=None,
         help=f"Path to mapping_summary_file file\n",
     )
     parser.add_argument(
         "-n",
         "--nextclade-csv-files",
-        required=False,
+        default=None,
         help=f"Path to nextclade csv files\n",
     )
 
@@ -308,10 +326,10 @@ def main():
     consensus_stats = parse_seqkit_fx2tab_file(args.seqkit_fx2tab_file)
     mapping_summary = parse_map_summary_file(args.mapping_summary_file)
     types = parse_typing_file(args.blastn_typing_file)
+    print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxttttttttttttttt")
     nextclade = parse_nextclade_csv_files(args.nextclade_csv_files)
-    total_summary = dict_merge(
-        summary, consensus_stats, mapping_summary, types, nextclade
-    )
+    print("yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy")
+    total_summary = dict_merge(summary, consensus_stats, mapping_summary, types, nextclade)
     jsonString = json.dumps(total_summary, indent=4)
     print(jsonString)
     json_summary_file = open(f"{args.prefix}.json", "w")

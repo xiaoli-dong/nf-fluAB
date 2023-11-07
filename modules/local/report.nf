@@ -13,7 +13,7 @@ process REPORT {
     tuple val(meta), path(consensus_stats)
     tuple val(meta), path(blastn_outfmt6)
     tuple val(meta), path(mapping_summary)
-    tuple val(meta), path(nextclade_csv) 
+    val nextclade_csv 
     
 
     output:
@@ -28,8 +28,10 @@ process REPORT {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    tsvList = nextclade_csv.join(',')
-   
+    //print(nextclade_csv.getClass())
+    //print(nextclade_csv.toString())
+    //tsvList = nextclade_csv.join(',')
+    //print(nextclade_csv)
     
     """
     get_report.py \\
@@ -39,7 +41,7 @@ process REPORT {
         -f ${consensus_stats} \\
         -b ${blastn_outfmt6} \\
         -m ${mapping_summary} \\
-        -n ${tsvList} \\
+        -n ${nextclade_csv} \\
         --prefix ${prefix}
 
     

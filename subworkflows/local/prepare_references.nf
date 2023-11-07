@@ -8,6 +8,19 @@ workflow PREPARE_REFERENCES {
 
     ch_versions = Channel.empty()
 
+    //
+    // Prepare fasta flu primers 
+    //
+    ch_flu_primers = Channel.empty()
+    
+    if (params.flu_primers) {
+        ch_flu_primers = Channel.value(file(params.flu_primers))
+    }
+    else {
+        log.error "Please specify a valid fasta format flu primer file"
+        System.exit(1)
+    }
+
     
     //
     // Prepare flu mash
@@ -37,7 +50,7 @@ workflow PREPARE_REFERENCES {
     }
 
     //
-    // Prepare flu fasta file
+    // Prepare typing database
     //
     ch_typing_db = Channel.empty()
 
@@ -52,6 +65,7 @@ workflow PREPARE_REFERENCES {
 
     
     emit:
+        ch_flu_primers
         ch_flu_db_msh 
         ch_flu_db_fasta 
         ch_typing_db  

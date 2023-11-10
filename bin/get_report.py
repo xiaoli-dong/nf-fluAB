@@ -373,6 +373,7 @@ def main():
     for key, value_dict in total_summary.items():
         if key in ["sname", "raw_reads", "qc_reads"]:
             continue
+        print(key)
         values = []
         values.append(key)
         values.append(value_dict["consensus_stats"]["gene_length"])

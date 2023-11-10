@@ -56,7 +56,7 @@ include {
     
 } from '../modules/nf-core/csvtk/concat/main'
 
-include {MAPPING_REPORT} from '../modules/local/mapping_report'
+
 include {REPORT} from '../modules/local/report'
 
 /*
@@ -122,11 +122,12 @@ workflow ILLUMINA {
         PREPARE_REFERENCES.out.ch_flu_db_fasta
     )
     
-    classifier_blast(ASSEMBLY_ILLUMINA.out.consensus, PREPARE_REFERENCES.out.ch_typing_db)
+    //classifier_blast(ASSEMBLY_ILLUMINA.out.consensus, PREPARE_REFERENCES.out.ch_typing_db)
+    classifier_blast(ASSEMBLY_ILLUMINA.out.blastn_fasta, PREPARE_REFERENCES.out.ch_typing_db)
     ch_versions.mix(classifier_blast.out.versions)
 
    
-    ASSEMBLY_ILLUMINA.out.consensus.join(classifier_blast.out.tsv).multiMap{
+    ASSEMBLY_ILLUMINA.out.blastn_fasta.join(classifier_blast.out.tsv).multiMap{
         it ->
             consensus: [it[0], it[1]]
             tsv: [it[0], it[2]]
@@ -144,7 +145,7 @@ workflow ILLUMINA {
         .join(ILLUMINA_QC.out.qc_stats)
         .join(ASSEMBLY_ILLUMINA.out.consensus_stats)
         .join(classifier_blast.out.tsv)
-        .join(ASSEMBLY_ILLUMINA.out.mapping_summary)
+        .join(ASSEMBLY_ILLUMINA.out.coverage_summary)
         .join(ch_nextclade)//.view()
         .multiMap{
             it ->
@@ -152,18 +153,17 @@ workflow ILLUMINA {
                 qc_stats: [it[0], it[2]]
                 consensus_stats: [it[0], it[3]]
                 blastn_outfmt6: [it[0], it[4]]
-                mapping_summary: [it[0], it[5]]
+                coverage_summary: [it[0], it[5]]
                 nextclade_csv: it[6].join(',')
         } 
     
-    //s11 has empty typing output, so there is no report produced .....
-    //REPORT(ch_report)
+    
     REPORT(
         ch_report.raw_stats,
         ch_report.qc_stats,
         ch_report.consensus_stats,
         ch_report.blastn_outfmt6,
-        ch_report.mapping_summary,
+        ch_report.coverage_summary,
         ch_report.nextclade_csv
     ) 
 

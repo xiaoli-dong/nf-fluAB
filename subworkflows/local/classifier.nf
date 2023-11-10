@@ -23,7 +23,7 @@ workflow classifier_blast {
 
 
 include {NEXTCLADE_RUN } from '../../modules/local/nextclade/run/main'
-include {SEGMENT2TYPEDATA } from '../../modules/local/segment2typedata'
+include {SEGMENT2TYPEDATA } from '../../modules/local/misc'
 include {
     CSVTK_CONCAT
     

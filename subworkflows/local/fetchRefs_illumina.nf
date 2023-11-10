@@ -1,7 +1,10 @@
 
 include { MASH_SCREEN                      } from '../../modules/nf-core/mash/screen/main'
-include {FILTERMASH} from '../../modules/local/filtermash'
 include { SEQKIT_GREP                      } from '../../modules/local/seqkit/grep'
+include {
+     FILTERMASH;
+    
+  } from '../../modules/local/misc'
 
 workflow fetchRefs_illumina {   
 

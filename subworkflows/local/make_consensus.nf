@@ -1,6 +1,3 @@
-
-include { PROCESSGVCF  } from '../../modules/local/processgvcf'
-
 include {
     BCFTOOLS_NORM as BCFTOOLS_NORM_LOWFREQ;
     BCFTOOLS_NORM as BCFTOOLS_NORM_HIGHFREQ;
@@ -20,17 +17,19 @@ include {
 } from '../../modules/nf-core/tabix/bgziptabix/main'
 
 
-include {
-    SPLITVCF as SPLITVCF_AMBIGUOUS;
-    SPLITVCF as SPLITVCF_FIXED;
-} from '../../modules/local/splitvcf'
 
 include {
     SEQKIT_FX2TAB as SEQKIT_FX2TAB_CONSENSUS
 } from '../../modules/nf-core/seqkit/fx2tab'
 
-include { BIOAWK  } from '../../modules/nf-core/bioawk/main'
 
+include {
+    FORMAT_CONSENSUS;
+    PROCESSGVCF;
+    SPLITVCF as SPLITVCF_AMBIGUOUS;
+    SPLITVCF as SPLITVCF_FIXED;
+
+  } from '../../modules/local/misc'
 
 workflow make_consensus {   
 
@@ -120,16 +119,21 @@ workflow make_consensus {
         )
         
         //format the consensus contig name
-        BIOAWK(BCFTOOLS_CONSENSUS_FIXED.out.fasta)
-        ch_versions = ch_versions.mix(BIOAWK.out.versions.first())
+        FORMAT_CONSENSUS(BCFTOOLS_CONSENSUS_FIXED.out.fasta)
+        ch_versions = ch_versions.mix(FORMAT_CONSENSUS.out.versions.first())
+        //BIOAWK(BCFTOOLS_CONSENSUS_FIXED.out.fasta)
+        //ch_versions = ch_versions.mix(BIOAWK.out.versions.first())
 
         //sort sequence by name before stats??????
-        SEQKIT_FX2TAB_CONSENSUS(BIOAWK.out.output)
+        //SEQKIT_FX2TAB_CONSENSUS(BIOAWK.out.output)
+        SEQKIT_FX2TAB_CONSENSUS(FORMAT_CONSENSUS.out.blastn_fasta)
         ch_versions = ch_versions.mix(SEQKIT_FX2TAB_CONSENSUS.out.versions.first())
 
     emit:
        
-        fasta = BIOAWK.out.output
+        //fasta = BIOAWK.out.output
+        consensus_fasta = FORMAT_CONSENSUS.out.consensus_fasta
+        blastn_fasta = FORMAT_CONSENSUS.out.blastn_fasta
         stats = SEQKIT_FX2TAB_CONSENSUS.out.text
         versions = ch_versions
         

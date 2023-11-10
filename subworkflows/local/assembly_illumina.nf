@@ -2,13 +2,12 @@
 include {fetchRefs_illumina} from './fetchRefs_illumina'
 include {process_bam} from './process_bam'
 include { make_consensus } from './make_consensus'
-include {MAPPING_REPORT} from '../../modules/local/mapping_report'
 include { BWAMEM2_INDEX} from '../../modules/nf-core/bwamem2/index/main'
 include { BWAMEM2_MEM} from '../../modules/nf-core/bwamem2/mem/main'
 include { MINIMAP2_ALIGN } from '../../modules/local/minimap2/align/main'
 include {SAMTOOLS_FAIDX} from '../../modules/nf-core/samtools/faidx/main'
 include { FREEBAYES } from '../../modules/nf-core/freebayes/main.nf'
-
+include { GET_COVERAGE } from '../../modules/local/misc'
 workflow ASSEMBLY_ILLUMINA {   
 
     take:
@@ -85,8 +84,8 @@ workflow ASSEMBLY_ILLUMINA {
             }.set{
                 ch_input
             }
-        MAPPING_REPORT(ch_input.screen, ch_input.coverage)
-        //MAPPING_REPORT.out.csv.view()
+        GET_COVERAGE(ch_input.screen, ch_input.coverage)
+        //GET_COVERAGE.out.csv.view()
 
         //variant calling
         //todo: need join before calling to make sure fasta fail are all for the correspoing samples
@@ -130,9 +129,10 @@ workflow ASSEMBLY_ILLUMINA {
         ch_versions.mix(make_consensus.out.versions)
         
     emit:
-        consensus = make_consensus.out.fasta
+        consensus_fasta = make_consensus.out.consensus_fasta
+        blastn_fasta = make_consensus.out.blastn_fasta
         consensus_stats = make_consensus.out.stats
-        mapping_summary = MAPPING_REPORT.out.csv 
+        coverage_summary = GET_COVERAGE.out.coverage_summary
         versions = ch_versions
         
 }

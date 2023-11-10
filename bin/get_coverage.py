@@ -92,14 +92,7 @@ def main():
 
     args = parser.parse_args()
     results = parse_mash_screen_file(args.mash_screen_file)
-    print("llllllllllllllllllllllllll")
-    print(results)
-    print("llllllllllllllllllllllllll-1")
-    print(results[0])
-    print("llllllllllllllllllllllllll-2")
-    print(results[1])
 
-    print("222222222222222222222222")
     segments_dict = results[0]
     # jsonString = json.dumps(segments_dict, indent=4)
     # print(jsonString)
@@ -107,9 +100,7 @@ def main():
 
     cov_dict = parse_samtools_coverage_file(args.samtool_coverage_file)
 
-    sorted_ref2segid = dict(
-        sorted(ref2segid_dict.items(), key=lambda x: x[1], reverse=False)
-    )
+    sorted_ref2segid = dict(sorted(ref2segid_dict.items(), key=lambda x: x[1], reverse=False))
     fieldnames = [
         # "sname",
         "#id",
@@ -143,7 +134,8 @@ def main():
                 print(x)
                 line = [
                     # args.sample_name,
-                    args.sample_name + "_" + "segment_" + x[0],
+                    # args.sample_name + "_" + "segment_" + x[0],
+                    args.sample_name + "_" + "segment" + x[0],
                     x[1],
                     acc,
                     cov_dict[acc]["startpos"],

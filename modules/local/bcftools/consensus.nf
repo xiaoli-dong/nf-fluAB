@@ -2,10 +2,10 @@ process BCFTOOLS_CONSENSUS {
     tag "$meta.id"
     label 'process_medium'
 
-    conda (params.enable_conda ? "bioconda::bcftools=1.17" : null)
+    conda (params.enable_conda ? "bioconda::bcftools=1.18" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bcftools:1.17--haef29d1_0':
-        'biocontainers/bcftools:1.17--haef29d1_0' }"
+        'https://depot.galaxyproject.org/singularity/bcftools%3A1.18--h8b25389_0':
+        'biocontainers/bcftools%3A1.18--h8b25389_0' }"
     input:
     tuple val(meta), path(vcf), path(tbi), path(fasta)
     tuple val(meta), path(mask)

@@ -1,0 +1,12 @@
+.nextflow*
+work/
+data/
+test/
+results/
+.DS_Store
+testing/
+test*
+*.pyc
+test_results/
+.vscode/
+null*

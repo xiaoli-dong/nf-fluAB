@@ -1,4 +1,4 @@
-process GET_COVERAGE {
+process MAPPING_SUMMARY {
     tag "$meta.id"
     label 'process_single'
 
@@ -12,7 +12,7 @@ process GET_COVERAGE {
     tuple val(meta), path(cov_file) //samtool coverage produced txt file
         
     output:
-    tuple val(meta), path("*.coverage_summary.csv"), emit: coverage_summary
+    tuple val(meta), path("*.mapping_summary.csv"), emit: mapping_summary
     path "versions.yml"           , emit: versions
 
     when:
@@ -23,11 +23,11 @@ process GET_COVERAGE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     
     """
-    get_coverage.py \\
+    mappingSummary.py \\
         -s ${meta.id} \\
         -m ${screen_file} \\
         -c ${cov_file} \\
-        -t ${prefix}.coverage_summary.csv
+        -t ${prefix}.mapping_summary.csv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -52,7 +52,7 @@ process FORMAT_CONSENSUS {
     tuple val(meta), path(fasta)
 
     output:
-    tuple val(meta), path('*.blastn.fasta'), emit: blastn_fasta
+    tuple val(meta), path('*.consensus_with_name.fasta'), emit: consensus_with_name
     tuple val(meta), path('*.consensus.fasta'), emit: consensus_fasta
 
     path "versions.yml" , emit: versions
@@ -64,8 +64,8 @@ process FORMAT_CONSENSUS {
     """
     formatFasta.py \\
     --sample-name ${prefix} \\
-    --output1-fasta ${prefix}.consensus.fasta \\
-    --output2-fasta ${prefix}.consensus.blastn.fasta \\
+    --output1-fasta ${prefix}.consensus_with_name.fasta \\
+    --output2-fasta ${prefix}.consensus.fasta \\
     $fasta
 
     cat <<-END_VERSIONS > versions.yml
@@ -91,8 +91,8 @@ process SEGMENT2TYPEDATA {
 
     output:
     
-    tuple val(meta), path("*.seg2typedata.tsv"), emit: out_tsv
-    tuple val(meta), path("*.segcontig.fa")
+    tuple val(meta), path("*.seg2typedata.tsv"),  optional:true, emit: out_tsv
+    tuple val(meta), path("*.segcontig.fa"), optional:true, emit: fasta 
     path "versions.yml"           , emit: versions
 
     when:

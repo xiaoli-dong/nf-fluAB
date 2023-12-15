@@ -99,6 +99,26 @@
                 }
             }
         },
+        "illumina_variant_options": {
+            "title": "illumina_variant_options",
+            "type": "object",
+            "fa_icon": "fas fa-terminal",
+            "description": "Illumina data analysis options",
+            "required": [
+                "illumina_variant_caller"
+            ],
+            "properties": {
+                "illumina_variant_caller": {
+                    "type": "string",
+                    "description": "illumina variant caller.",
+                    "default": "bcftools",
+                    "enum": [
+                        "bcftools",
+                        "freebayes"
+                    ]
+                }
+            }
+        },
         "illumina_assembly_options": {
             "title": "illumina_assembly_options",
             "type": "object",
@@ -118,12 +138,12 @@
                         "bwa"
                     ]
                 },
-                "min_coverage": {
+                "mindepth": {
                     "type": "integer",
                     "description": "freebayes require at least this coverage to process a site.",
                     "default": 10
                 },
-                "min_identity": {
+                "mashthreshold": {
                     "type": "number",
                     "description": "mash screen minimum identity to report",
                     "default": 0.9
@@ -145,12 +165,12 @@
                 "nextclade_dataset_base"
             ],
             "properties": {
-                "min_perc_identity": {
+                "minblastident": {
                     "type": "integer",
                     "description": "blastn search typing_db minimum percent identity.",
                     "default": 70
                 },
-                "min_qcov_hsp_perc": {
+                "minblastcov": {
                     "type": "integer",
                     "description": "blastn search agaist typing_db percent minimum  query coverage per hsp.",
                     "default": 75
@@ -335,6 +355,9 @@
         },
         {
             "$ref": "#/definitions/illumina_qc_options"
+        },
+        {
+            "$ref": "#/definitions/illumina_variant_options"
         },
         {
             "$ref": "#/definitions/illumina_assembly_options"

@@ -74,12 +74,14 @@ def parse_map_summary_file(path_to_file):
         return refs
 
     with open(path_to_file, "r", encoding="utf8") as mapping_summary_file:
-        reader = csv.DictReader(mapping_summary_file, delimiter=",")
+        reader = csv.DictReader(mapping_summary_file, delimiter="\t")
         for row in reader:
-            id = row.pop("#id")
+            id = row.pop("segmentid")
             # Human|7|M|H1N1|Kenya|A/Kenya/035/2018|A|na|na|na
             query_id = row["query-ID"]
-            x = query_id.split("|")
+            print(query_id)
+            x = row["query-comment"].split("|")
+            print(x)
             row["host"] = x[0]
             row["segment_number"] = x[1]
             row["segment_name"] = x[2]
@@ -159,6 +161,7 @@ def parse_typing_file(path_to_file):
         ]
         tsv_reader = csv.reader(blastn_typing_file, delimiter="\t")
         # print(tsv_reader)
+        next(tsv_reader, None)  # skip the headers
         for tsv in tsv_reader:
             record_dict = {}
             id = tsv.pop(0)
@@ -208,7 +211,8 @@ def parse_nextclade_csv_files(path_to_files):
                 # Human|7|M|H1N1|Kenya|A/Kenya/035/2018|A|na|na|na
                 # refs[id] = slicedict(row, "clade")
                 refs[id] = {}
-                refs[id]["nextclade"] = slicedict(row, "clade")
+                #refs[id]["nextclade"] = slicedict(row, "clade")
+                refs[id]["clade"] = slicedict(row, "clade")
 
     sorted_refs = {i: refs[i] for i in sorted(refs.keys())}
     print(sorted_refs)
@@ -328,6 +332,7 @@ def main():
     types = parse_typing_file(args.blastn_typing_file)
     print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxttttttttttttttt")
     nextclade = parse_nextclade_csv_files(args.nextclade_csv_files)
+    print(nextclade)
     print("yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy")
     total_summary = dict_merge(summary, consensus_stats, mapping_summary, types, nextclade)
     jsonString = json.dumps(total_summary, indent=4)
@@ -397,7 +402,7 @@ def main():
             values.append(value_dict["clade"]["clade"])
         else:
             values.append("na")
-        values.append(value_dict["mapping"]["accession"])
+        values.append(value_dict["mapping"]["query-ID"])
         values.append(value_dict["mapping"]["segment_number"])
         values.append(value_dict["mapping"]["segment_name"])
         values.append(value_dict["mapping"]["serotype"])

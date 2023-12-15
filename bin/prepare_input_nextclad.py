@@ -101,10 +101,10 @@ def main():
     empty = True
 
     with open(args.tsv) as tsv_file:
-        csvData = csv.reader(tsv_file, delimiter="\t")
-
+        reader = csv.reader(tsv_file, delimiter="\t")
+        next(reader, None)  # skip the headers
         # filter out the exclusions
-        for line in csvData:
+        for line in reader:
             empty = False
             # print(line)
             # S10_T1_segment_6        GQ377078~~6~~N1 96.373  1158    39      2       205     1359    252     1409    0.0     1903    1360    1410    85      85
@@ -112,14 +112,10 @@ def main():
             (target, segid, typing) = line[1].split("~~")
             typedata = get_flu_typedata(typing)
             # if typedata != "NA":
-            print(
-                f"{line[0]}\t{input_dir}/{line[0]}.segcontig.fa\t{args.dbdir}/{typedata}"
-            )
+            print(f"{line[0]}\t{input_dir}/{line[0]}.segcontig.fa\t{args.dbdir}/{typedata}")
 
     if empty:
-        print(
-            f"{args.sid}_segment_1\t{input_dir}/{args.sid}_segment_1.segcontig.fa\t{args.dbdir}/NA"
-        )
+        print(f"{args.sid}_segment_1\t{input_dir}/{args.sid}_segment_1.segcontig.fa\t{args.dbdir}/NA")
 
     tsv_file.close()
 

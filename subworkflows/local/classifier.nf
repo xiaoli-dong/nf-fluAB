@@ -1,4 +1,5 @@
 include {BLAST_BLASTN } from '../../modules/local/blast/blastn'
+include { CSVTK_ADD_HEADER as CSVTK_ADD_HEADER_BLASTN } from '../../modules/local/csvtk/add-header/main'
 
 workflow classifier_blast {   
 
@@ -10,13 +11,15 @@ workflow classifier_blast {
         ch_versions = Channel.empty()
         BLAST_BLASTN(fasta, typing_db)
         ch_versions = ch_versions.mix(BLAST_BLASTN.out.versions.first())
+
+        CSVTK_ADD_HEADER_BLASTN(
+            BLAST_BLASTN.out.tsv, 
+            "qseqid,sseqid,pident,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore,qlen,slen,qcovs"
+        )
         
 
     emit:
-        // txt = blast_out_ch
-        // seq = consensus_seq_ch
-        //fasta
-        tsv = BLAST_BLASTN.out.tsv
+        tsv = CSVTK_ADD_HEADER_BLASTN.out.tsv
         versions = ch_versions
         
 }

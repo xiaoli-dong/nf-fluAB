@@ -15,6 +15,7 @@ def write_consensus(sample_name, output1_fasta, output2_fasta, fastas):
         print(fasta_path)
         for record in SeqIO.parse(fasta_path, "fasta"):
             # e.g: >KX351456 Human|2|PB2|H3N2|USA|A/Rochester/0091/2013|na|na|na|na
+            #print(record)
             segment_number, segment_name = record.description.split("|")[1:3]
             seqs.append([segment_number, segment_name, str(record.seq)])
     seqs.sort(key=lambda tup: tup[0])

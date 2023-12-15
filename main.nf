@@ -34,7 +34,11 @@ WorkflowMain.initialise(workflow, params, log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { ILLUMINA } from './workflows/illumina'
+if (params.platform == 'illumina') {
+    include { ILLUMINA } from './workflows/illumina'
+} else if (params.platform == 'nanopore') {
+    include { NANOPORE } from './workflows/nanopore'
+}
 
 //
 // WORKFLOW: Run main nf-core/influenza analysis pipeline

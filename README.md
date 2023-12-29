@@ -85,13 +85,6 @@ The nf-fluAB pipeline comes with documentation about the pipeline [usage](https:
 
 nf-fluAB was written by Xiaoli Dong. The illumina part of this pipeline was mainly based on Dr. Matthew Croxen's [flu pipeline]().
 
-Extensive support was provided from others on the scientific or technical input required for the pipeline:
-- Dr. Matthew Croxen
-- Dr. Tarah Lynch
-- Kanti Pabbaraju
-- Anita Wong
-- Linda Lee
-  
 <!-- TODO nf-core: If applicable, make list of people who have also contributed -->
 <!-- 
 ## Contributions and Support

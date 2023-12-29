@@ -11,11 +11,13 @@ process CLAIR3 {
 
   input:
   tuple val(meta), path(bam), path(bai) //indexed bam
-  tuple val(meta), path(ref_fasta), path(ref_fasta_fai) //indexed ref
+  tuple val(meta), path(fasta), path(fai) //indexed ref
   path model_path 
 
   output:
   tuple val(meta), path(vcf), path(tbi), emit: vcf_tbi
+  tuple val(meta), path(fasta), emit: fasta
+  tuple val(meta), path(fasta), path(fai), emit: fasta_fai
   path (clair3_dir), emit: output_dir
   path (clair3_log), emit: log
   path "versions.yml" , emit: versions
@@ -35,7 +37,7 @@ process CLAIR3 {
   """
   run_clair3.sh \\
       --bam_fn=${bam} \\
-      --ref_fn=$ref_fasta \\
+      --ref_fn=$fasta \\
       --model_path=${model_path} \\
       --threads=${task.cpus} \\
       --output=${clair3_dir} \\

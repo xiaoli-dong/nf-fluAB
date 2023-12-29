@@ -34,9 +34,11 @@ include {
 include {
     PREPARE_REFERENCES
 } from '../subworkflows/local/prepare_references'
+
 include {
     QC_NANOPORE
 } from '../subworkflows/local/qc_nanopore'
+
 include {
     MAPPING_NANOPORE
 } from '../subworkflows/local/mapping_nanopore'
@@ -46,9 +48,17 @@ include {
     classifier_nextclade;
 } from '../subworkflows/local/classifier'
 
+include {
+    maskfasta
+} from '../subworkflows/local/maskfasta'
+
+include {
+    variants_clair3;
+} from '../subworkflows/local/variants_nanopore' 
+
 include {  
-    consensus_clair3;
-} from '../subworkflows/local/consensus_nanopore'
+    consensus
+} from '../subworkflows/local/consensus'
 
 
 /*
@@ -60,19 +70,18 @@ include {
 //
 // MODULE: Installed directly from nf-core/modules
 //
-//include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
 include {   CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 include {
     CSVTK_CONCAT as CONCAT_STATS_SHORT_RAW;
     CSVTK_CONCAT as CONCAT_STATS_SHORT_QC;
     CSVTK_CONCAT as CONCAT_STATS_SUMMARY;
     CSVTK_CONCAT as CONCAT_NEXTCLADE;
-    
 } from '../modules/nf-core/csvtk/concat/main'
 include {   FREEBAYES   } from '../modules/nf-core/freebayes/main.nf'
+
+
 include {   REPORT      } from '../modules/local/report'
 include {   CLAIR3      } from '../modules/local/clair3/main'
-
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -98,11 +107,8 @@ workflow NANOPORE {
     INPUT_CHECK (ch_input)
     ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
 
-    in_format = "tsv"
-    out_format = "tsv"
-
     nanopore_reads = INPUT_CHECK.out.reads
-    nanopore_reads.view()
+    //nanopore_reads.view()
     
     QC_NANOPORE(nanopore_reads, PREPARE_REFERENCES.out.ch_hostile_ref_minimap2)
     QC_NANOPORE.out.qc_reads
@@ -115,64 +121,64 @@ workflow NANOPORE {
         PREPARE_REFERENCES.out.ch_flu_db_msh, 
         PREPARE_REFERENCES.out.ch_flu_db_fasta
     )
-    bam_bai = MAPPING_NANOPORE.out.bam_bai
-    fasta = MAPPING_NANOPORE.out.fasta
-    fasta_fai = MAPPING_NANOPORE.out.fasta_fai
     ch_versions.mix(MAPPING_NANOPORE.out.versions)
 
-    
-    MAPPING_NANOPORE.out.bam_bai.join(fasta).join(fasta_fai).multiMap {
-        it ->
-            mapping: [it[0], it[1], it[2], [], [], []]
-            fasta: it[3]
-            fai: it[4]
-    }
-    .set{
-        ch_input_freebayers
-    }
+     // mask low depth region of the fasta reference 
+    maskfasta(
+        MAPPING_NANOPORE.out.bam_bai, 
+        MAPPING_NANOPORE.out.fasta
+    )
+    fasta_fai = maskfasta.out.fasta_fai
+    ch_versions.mix(maskfasta.out.versions)
 
-    MAPPING_NANOPORE.out.bam_bai.join(fasta).join(fasta_fai).multiMap {
+
+    MAPPING_NANOPORE.out.bam_bai.join(maskfasta.out.fasta_fai).multiMap {
         it ->
             bam_bai: [it[0], it[1], it[2]]
             fasta_fai: [it[0], it[3], it[4]]
     }
     .set{
-        ch_clair3_input
+        ch_input
     }
-    consensus_clair3(
-        ch_clair3_input.bam_bai, 
-        ch_clair3_input.fasta_fai, 
+    variants_clair3(
+        ch_input.bam_bai, 
+        ch_input.fasta_fai, 
         PREPARE_REFERENCES.out.ch_clair3_variant_model
     )
-    consensus = consensus_clair3.out.fasta
-    consensus_stats = consensus_clair3.out.stats
-   
-    // ########## typing contigs ##########
-    classifier_blast(consensus, PREPARE_REFERENCES.out.ch_typing_db)
+   // vcf_tbi = variants_clair3.out.vcf_tbi
+
+    variants_clair3.out.vcf_tbi.join(variants_clair3.out.fasta_fai).multiMap{
+        it ->
+            vcf_tbi: [it[0], it[1], it[2]]
+            fasta: [it[0], it[3]]
+    }.set{
+        ch_input
+    } 
+    consensus(ch_input.vcf_tbi, ch_input.fasta)
+    
+     /* ########## typing contigs ########## */
+    classifier_blast(consensus.out.fasta, PREPARE_REFERENCES.out.ch_typing_db)
     ch_versions.mix(classifier_blast.out.versions)
 
-   
-    consensus.join(classifier_blast.out.tsv).multiMap{
+    consensus.out.fasta.join(classifier_blast.out.tsv).multiMap{
         it ->
             consensus: [it[0], it[1]]
             tsv: [it[0], it[2]]
     }.set{
         ch_input
     }
+
     classifier_nextclade(ch_input.consensus, ch_input.tsv)
     //classifier_nextclade.out.tsv.collectFile().view()
-
-    ch_nextclade = classifier_nextclade.out.tsv.groupTuple()//.view()
     ch_versions.mix(classifier_nextclade.out.versions)
-    
    
     //reporting
     ch_report = QC_NANOPORE.out.input_stats.ifEmpty([])
         .join(QC_NANOPORE.out.qc_stats.ifEmpty([]))
-        .join(consensus_stats.ifEmpty([]))
+        .join(consensus.out.stats.ifEmpty([]))
         .join(classifier_blast.out.tsv.ifEmpty([]))
         .join(MAPPING_NANOPORE.out.mapping_summary.ifEmpty([]))
-        .join(ch_nextclade)//.view()
+        .join(classifier_nextclade.out.tsv.groupTuple())//.view()
         .multiMap{
             it ->
                 raw_stats: [it[0], it[1]]
@@ -182,8 +188,7 @@ workflow NANOPORE {
                 mapping_summary: [it[0], it[5]]
                 nextclade_csv: it[6].join(',')
         } 
-    
-    
+        
     REPORT(
         ch_report.raw_stats,
         ch_report.qc_stats,
@@ -194,18 +199,18 @@ workflow NANOPORE {
     ) 
 
     CONCAT_STATS_SUMMARY(
-        REPORT.out.oneline_csv.map { cfg, stats -> stats }.collect()
-            .map { files -> tuple([id: "summary_report"], files)}, 
-        in_format, 
-        out_format 
+        REPORT.out.oneline_csv.map { 
+            cfg, stats -> stats }.collect()
+            .map { files -> tuple([id: "summary_report"], files)
+        }, 
+        "tsv", 
+        "tsv" 
     ) 
-    
     
     //ch_versions.view()
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
-
 }
 
 /*

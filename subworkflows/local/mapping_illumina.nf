@@ -65,8 +65,8 @@ workflow MAPPING_ILLUMINA {
         fasta = SEQKIT_GREP.out.fasta
         //###################################### endo fo fetch reference ##############################
 
-        SAMTOOLS_FAIDX(fasta)
-        fasta_fai = SAMTOOLS_FAIDX.out.fai
+        // SAMTOOLS_FAIDX(fasta)
+        // fasta_fai = SAMTOOLS_FAIDX.out.fai
 
         /* ######################################## Mapping ############################ */
         bam = Channel.empty()
@@ -158,7 +158,7 @@ workflow MAPPING_ILLUMINA {
     emit:
         bam_bai = ch_bam_bai
         fasta
-        fasta_fai
+        //fasta_fai
         coverage
         mapping_summary = MAPPING_SUMMARY.out.mapping_summary
         versions = ch_versions

@@ -13,7 +13,7 @@ process SEQKIT_GREP {
     path refdb
 
     output:
-    tuple val(meta), path("*.fa"), emit: fasta
+    tuple val(meta), path("*.fasta"), emit: fasta
     path "versions.yml"           , emit: versions
 
     when:
@@ -25,7 +25,7 @@ process SEQKIT_GREP {
     def prefix = task.ext.prefix ?: "${meta.id}"
 
     """
-    seqkit grep --pattern ${patterns}  ${refdb} -o  ${prefix}_reference.fa
+    seqkit grep --pattern ${patterns}  ${refdb} -o  ${prefix}_reference.fasta
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

@@ -36,9 +36,7 @@ process MAPPING_SUMMARY {
     """
 }
 
-
-
-process FORMAT_CONSENSUS {
+process REHEADER {
     tag "$sample"
     conda 'bioconda::shiptv=0.4.0'
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -62,7 +60,7 @@ process FORMAT_CONSENSUS {
     def prefix = task.ext.prefix ?: "${meta.id}"
 
     """
-    formatFasta.py \\
+    reheader.py \\
     --sample-name ${prefix} \\
     --output1-fasta ${prefix}.consensus_with_name.fasta \\
     --output2-fasta ${prefix}.consensus.fasta \\

@@ -28,7 +28,7 @@ if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input sample
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
 include {
-    INPUT_CHECK         
+    INPUT_CHECK
 } from '../subworkflows/local/input_check'
 
 include {
@@ -54,9 +54,9 @@ include {
 
 include {
     variants_clair3;
-} from '../subworkflows/local/variants_nanopore' 
+} from '../subworkflows/local/variants_nanopore'
 
-include {  
+include {
     consensus
 } from '../subworkflows/local/consensus'
 
@@ -70,19 +70,37 @@ include {
 //
 // MODULE: Installed directly from nf-core/modules
 //
-include {   CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+include {
+    CUSTOM_DUMPSOFTWAREVERSIONS
+} from '../modules/nf-core/custom/dumpsoftwareversions/main'
+
 include {
     CSVTK_CONCAT as CONCAT_STATS_SHORT_RAW;
     CSVTK_CONCAT as CONCAT_STATS_SHORT_QC;
     CSVTK_CONCAT as CONCAT_STATS_SUMMARY;
     CSVTK_CONCAT as CONCAT_NEXTCLADE;
 } from '../modules/nf-core/csvtk/concat/main'
-include {   FREEBAYES   } from '../modules/nf-core/freebayes/main.nf'
+
+include {
+    FREEBAYES
+} from '../modules/nf-core/freebayes/main.nf'
+
+include {
+    REPORT
+} from '../modules/local/report'
+
+include {
+    CLAIR3
+} from '../modules/local/clair3/main'
 
 
-include {   REPORT      } from '../modules/local/report'
-include {   CLAIR3      } from '../modules/local/clair3/main'
 
+
+/*String inString = 'whatever'
+String zipString = zip(inString)
+String unzippedString = unzip(zipString)
+assert(inString == unzippedString)
+*/
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RUN MAIN WORKFLOW
@@ -93,44 +111,65 @@ include {   CLAIR3      } from '../modules/local/clair3/main'
 def multiqc_report = []
 
 workflow NANOPORE {
-    
+
     ch_versions = Channel.empty()
-    
+
     // SUBWORKFLOW: prepare reference databases ...
     //
     PREPARE_REFERENCES ()
     ch_versions = ch_versions.mix(PREPARE_REFERENCES.out.versions)
-    
+
     //
     // SUBWORKFLOW: Read in samplesheet, validate and stage input files
     //
     INPUT_CHECK (ch_input)
     ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
 
-    nanopore_reads = INPUT_CHECK.out.reads
+    nanopore_reads = INPUT_CHECK.out.longreads
     //nanopore_reads.view()
-    
-    QC_NANOPORE(nanopore_reads, PREPARE_REFERENCES.out.ch_hostile_ref_minimap2)
+
+    /*
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        sequence quality control
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
+
+    QC_NANOPORE(
+        nanopore_reads,
+        PREPARE_REFERENCES.out.ch_hostile_ref_minimap2
+    )
     QC_NANOPORE.out.qc_reads
         .filter {meta, reads -> reads.size() > 0 && reads.countFastq() > 0}
         .set { nanopore_reads }
-    ch_versions = ch_versions.mix(QC_NANOPORE.out.versions) 
-    
+    ch_versions = ch_versions.mix(QC_NANOPORE.out.versions)
+
+
+    /*
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        Identify the closely related rerference through mapping
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
+
     MAPPING_NANOPORE(
-        nanopore_reads, 
-        PREPARE_REFERENCES.out.ch_flu_db_msh, 
+        nanopore_reads,
+        PREPARE_REFERENCES.out.ch_flu_db_msh,
         PREPARE_REFERENCES.out.ch_flu_db_fasta
     )
     ch_versions.mix(MAPPING_NANOPORE.out.versions)
 
-     // mask low depth region of the fasta reference 
+    /*
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        variant calling
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
+
+    // mask low depth region of the fasta reference
     maskfasta(
-        MAPPING_NANOPORE.out.bam_bai, 
+        MAPPING_NANOPORE.out.bam_bai,
         MAPPING_NANOPORE.out.fasta
     )
     fasta_fai = maskfasta.out.fasta_fai
     ch_versions.mix(maskfasta.out.versions)
-
 
     MAPPING_NANOPORE.out.bam_bai.join(maskfasta.out.fasta_fai).multiMap {
         it ->
@@ -141,21 +180,36 @@ workflow NANOPORE {
         ch_input
     }
     variants_clair3(
-        ch_input.bam_bai, 
-        ch_input.fasta_fai, 
+        ch_input.bam_bai,
+        ch_input.fasta_fai,
         PREPARE_REFERENCES.out.ch_clair3_variant_model
     )
    // vcf_tbi = variants_clair3.out.vcf_tbi
 
-    variants_clair3.out.vcf_tbi.join(variants_clair3.out.fasta_fai).multiMap{
+    /*
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    consensus generrating
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
+    //filter out emtpy vcf file
+
+   
+    variants_clair3.out.vcf.join(variants_clair3.out.fasta_fai).multiMap{
         it ->
-            vcf_tbi: [it[0], it[1], it[2]]
-            fasta: [it[0], it[3]]
+            vcf: [it[0], it[1]]
+            fasta: [it[0], it[2]]
     }.set{
         ch_input
-    } 
-    consensus(ch_input.vcf_tbi, ch_input.fasta)
-    
+    }
+    //ch_input.vcf.view()
+    consensus(ch_input.vcf, ch_input.fasta)
+    ch_versions.mix(consensus.out.versions)
+
+    /*
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Typing consensus
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
      /* ########## typing contigs ########## */
     classifier_blast(consensus.out.fasta, PREPARE_REFERENCES.out.ch_typing_db)
     ch_versions.mix(classifier_blast.out.versions)
@@ -169,10 +223,13 @@ workflow NANOPORE {
     }
 
     classifier_nextclade(ch_input.consensus, ch_input.tsv)
-    //classifier_nextclade.out.tsv.collectFile().view()
     ch_versions.mix(classifier_nextclade.out.versions)
-   
-    //reporting
+
+    /*
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    producce analysis report
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
     ch_report = QC_NANOPORE.out.input_stats.ifEmpty([])
         .join(QC_NANOPORE.out.qc_stats.ifEmpty([]))
         .join(consensus.out.stats.ifEmpty([]))
@@ -187,8 +244,8 @@ workflow NANOPORE {
                 blastn_outfmt6: [it[0], it[4]]
                 mapping_summary: [it[0], it[5]]
                 nextclade_csv: it[6].join(',')
-        } 
-        
+        }
+
     REPORT(
         ch_report.raw_stats,
         ch_report.qc_stats,
@@ -196,17 +253,20 @@ workflow NANOPORE {
         ch_report.blastn_outfmt6,
         ch_report.mapping_summary,
         ch_report.nextclade_csv
-    ) 
+    )
 
+    //report_name = "summary_report." + params.nanopore_reads_mapping_tool + "-" + params.nanopore_variant_caller
     CONCAT_STATS_SUMMARY(
-        REPORT.out.oneline_csv.map { 
+        REPORT.out.oneline_csv.map {
             cfg, stats -> stats }.collect()
-            .map { files -> tuple([id: "summary_report"], files)
-        }, 
-        "tsv", 
-        "tsv" 
-    ) 
-    
+            //.map { files -> tuple([id: "summary_report"], files)
+            .map { files -> tuple([id: "report.consensus_" + params.nanopore_reads_mapping_tool + "-" + params.nanopore_variant_caller], files)
+
+        },
+        "tsv",
+        "tsv"
+    )
+
     //ch_versions.view()
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')

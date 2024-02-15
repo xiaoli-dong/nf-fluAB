@@ -103,12 +103,12 @@
                 "flu_db_msh": {
                     "type": "string",
                     "description": "flu database mash sketch file",
-                    "default": ""
+                    "default": "/nfs/APL_Genomics/db/prod/fluAB/influenzaDB-2022-11-18/influenzaDB-2022-11-18.msh"
                 },
                 "flu_db_fasta": {
                     "type": "string",
                     "description": "Fasta format flu database file",
-                    "default": ""
+                    "default": "/nfs/APL_Genomics/db/prod/fluAB/influenzaDB-2022-11-18/influenzaDB-2022-11-18.fasta"
                 },
                 "mashthreshold": {
                     "type": "number",
@@ -128,8 +128,8 @@
             "fa_icon": "fas fa-terminal",
             "description": "reads mapping, variant calling, consensus generating",
             "required": [
-                "illumina_read_mapping_tool",
-                "nanopore_read_mapping_tool"
+                "illumina_reads_mapping_tool",
+                "nanopore_reads_mapping_tool"
             ],
             "properties": {
                 "illumina_reads_mapping_tool": {
@@ -387,9 +387,6 @@
     "allOf": [
         {
             "$ref": "#/definitions/input_output_options"
-        },
-        {
-            "$ref": "#/definitions/reference_options"
         },
         {
             "$ref": "#/definitions/retrieve_reference_options"

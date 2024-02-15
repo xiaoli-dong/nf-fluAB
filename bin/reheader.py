@@ -1,34 +1,61 @@
 #!/usr/bin/env python
 
-from Bio import SeqIO
-import click
+import argparse
+import csv
+
+def main():
+
+    description = "this program is reformat the flu segment sequence header"
+    parser = argparse.ArgumentParser(description=description)
+
+    parser.add_argument(
+        "-i",
+        "--input",
+        required=True,
+        help=f"seqkit fx2tab --length -C N -H output \n",
+    )
+    parser.add_argument("-o", "--output", required=True, help=f"Output file name\n")
+    parser.add_argument("-p", "--prefix", required=True, help=f"Prefix of the sequence id\n")
+    parser.add_argument("-c", "--cov", required=True, default=0, help=f"minimum ratio of the non_Ns\n")
 
 
-@click.command()
-@click.option("-s", "--sample-name", default="", help="Sample Name.")
-@click.option("-o1", "--output1-fasta", default="consensus.fasta", help="Consensus Fasta")
-@click.option("-o2", "--output2-fasta", default="blastn.fasta", help="Consensus Fasta for Blastn")
-@click.argument("fastas", nargs=-1)
-def write_consensus(sample_name, output1_fasta, output2_fasta, fastas):
-    seqs = []
-    for fasta_path in fastas:
-        print(fasta_path)
-        for record in SeqIO.parse(fasta_path, "fasta"):
-            # e.g: >KX351456 Human|2|PB2|H3N2|USA|A/Rochester/0091/2013|na|na|na|na
-            #print(record)
-            segment_number, segment_name = record.description.split("|")[1:3]
-            seqs.append([segment_number, segment_name, str(record.seq)])
-    seqs.sort(key=lambda tup: tup[0])
-    # Outfile for publishing to output dir with header format SampleName_segment1_PB2
-    with open(output1_fasta, "w") as fout:
-        for segment_number, segment_name, seq in seqs:
-            fout.write(f">{sample_name}_segment{segment_number}_{segment_name}\n{seq}\n")
-            # fout.write(f">{sample_name}_segment_{segment_number}\n{seq}\n")
-    # Outfile for blastn report script compatible
-    with open(output2_fasta, "w") as fout:
-        for segment_number, _, seq in seqs:
-            fout.write(f">{sample_name}_segment{segment_number}\n{seq}\n")
 
+    args = parser.parse_args()
+    
+
+    fout = open(args.output, "w", encoding="utf-8")
+    # Simple Way to Read TSV Files in Python using csv
+    ##name   seq     length  N
+    #MH356668 Human|7|M|H1N1|Kenya|A/Kenya/035/2018|A|na|na|na       ATGAGTCTTCTAACCGAGG       689     169
+    # open .tsv file
+    with open(args.input) as file:
+        
+        # Passing the TSV file to  
+        # reader() function
+        # with tab delimiter 
+        # This function will
+        # read data from file
+        reader = csv.reader(file, delimiter="\t")
+        
+        # printing data line by line
+        header = next(reader)
+        fout.write("\t".join(header) + "\n")
+        #fout.write(header)
+
+        for l in reader:
+          
+            if int(l[3])/int(l[2]) > 1 - float(args.cov):
+                #print(l)
+                continue
+            
+            else: 
+                refid = l[0].split(" ")[0]
+                segment_number, segment_name = l[0].split("|")[1:3]
+                l[0] = f"{args.prefix}_segment_{segment_number} ref_accession={refid}"
+                fout.write("\t".join(l) + "\n")
+
+    file.close()
+    fout.close()       
 
 if __name__ == "__main__":
-    write_consensus()
+    main()

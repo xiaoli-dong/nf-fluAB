@@ -27,7 +27,8 @@ process MAPPING_SUMMARY {
         -s ${meta.id} \\
         -m ${screen_file} \\
         -c ${cov_file} \\
-        -t ${prefix}.mapping_summary.csv
+        -p ${prefix} \\
+        -t ${meta.id}.mapping_summary.csv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -37,21 +38,20 @@ process MAPPING_SUMMARY {
 }
 
 process REHEADER {
-    tag "$sample"
-    conda 'bioconda::shiptv=0.4.0'
-    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
-    container 'https://depot.galaxyproject.org/singularity/shiptv:0.4.0--pyh5e36f6f_0'
-    } else {
-    container 'quay.io/biocontainers/shiptv:0.4.0--pyh5e36f6f_0'
-    }
+    tag "$meta.id"
+    label 'process_single'
+
+    conda "conda-forge::python=3.9.5"
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/python:3.9--1' :
+        'quay.io/biocontainers/python:3.9--1' }"
 
     input:
     // e.g: >KX351456 Human|2|PB2|H3N2|USA|A/Rochester/0091/2013|na|na|na|na
-    tuple val(meta), path(fasta)
+    tuple val(meta), path(tsv)
 
     output:
-    tuple val(meta), path('*.consensus_with_name.fasta'), emit: consensus_with_name
-    tuple val(meta), path('*.consensus.fasta'), emit: consensus_fasta
+    tuple val(meta), path('*.filtered.txt'), emit: txt
 
     path "versions.yml" , emit: versions
 
@@ -61,10 +61,10 @@ process REHEADER {
 
     """
     reheader.py \\
-    --sample-name ${prefix} \\
-    --output1-fasta ${prefix}.consensus_with_name.fasta \\
-    --output2-fasta ${prefix}.consensus.fasta \\
-    $fasta
+        $args \\
+        --input ${tsv} \\
+        --prefix ${prefix} \\
+        --output ${prefix}.filtered.txt
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

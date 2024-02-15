@@ -2,11 +2,11 @@ process CLAIR3 {
   tag "$meta.id"
   label 'process_medium'
 
-  conda 'bioconda::clair3==1.0.4'
+  conda 'bioconda::clair3==1.0.5'
   if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
-    container 'https://depot.galaxyproject.org/singularity/clair3%3A1.0.4--py39hf5e1c6e_3'
+    container 'https://depot.galaxyproject.org/singularity/clair3%3A1.0.5--py39hf5e1c6e_0'
   } else {
-    container 'quay.io/biocontainers/clair3%3A1.0.4--py39hf5e1c6e_3'
+    container 'quay.io/biocontainers/clair3%3A1.0.5--py39hf5e1c6e_0'
   }
 
   input:
@@ -15,7 +15,7 @@ process CLAIR3 {
   path model_path 
 
   output:
-  tuple val(meta), path(vcf), path(tbi), emit: vcf_tbi
+  tuple val(meta), path(vcf), emit: vcf
   tuple val(meta), path(fasta), emit: fasta
   tuple val(meta), path(fasta), path(fai), emit: fasta_fai
   path (clair3_dir), emit: output_dir
@@ -30,7 +30,6 @@ process CLAIR3 {
   def prefix = task.ext.prefix ?: "${meta.id}"
 
   vcf          = "${prefix}.clair3.vcf.gz"
-  tbi          = "${prefix}.clair3.vcf.gz.tbi"
   clair3_dir   = "${prefix}.clair3"
   clair3_log   = "${clair3_dir}/run_clair3.log"
   
@@ -44,7 +43,7 @@ process CLAIR3 {
       $args 
 
   ln -s ${clair3_dir}/merge_output.vcf.gz ${vcf}
-  ln -s ${clair3_dir}/merge_output.vcf.gz.tbi ${tbi}
+  
   cat <<-END_VERSIONS > versions.yml
   "${task.process}":
       clair3: \$(head -n1 ${clair3_dir}/run_clair3.log | sed 's/^.*CLAIR3 VERSION: v//; s/ .*\$//')

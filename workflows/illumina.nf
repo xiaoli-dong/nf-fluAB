@@ -11,7 +11,6 @@ WorkflowIllumina.initialise(params, log)
 
 // TODO nf-core: Add all file path parameters for the pipeline to the list below
 // Check input path parameters to see if they exist
-//def checkPathParamList = [ params.input, params.multiqc_config, params.fasta ]
 def checkPathParamList = [ params.input]
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
@@ -24,18 +23,29 @@ if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input sample
     IMPORT LOCAL MODULES/SUBWORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
+
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
-include {   INPUT_CHECK         } from '../subworkflows/local/input_check'
-include {   PREPARE_REFERENCES  } from '../subworkflows/local/prepare_references'
-include {   QC_ILLUMINA         } from '../subworkflows/local/qc_illumina'
-include {   MAPPING_ILLUMINA    } from '../subworkflows/local/mapping_illumina'
+include {
+    INPUT_CHECK
+} from '../subworkflows/local/input_check'
 
-include {  
+include {
+    PREPARE_REFERENCES
+} from '../subworkflows/local/prepare_references'
+
+include {
+    QC_ILLUMINA
+} from '../subworkflows/local/qc_illumina'
+
+include {
+    MAPPING_ILLUMINA
+} from '../subworkflows/local/mapping_illumina'
+
+include {
     consensus
 } from '../subworkflows/local/consensus'
-
 
 include {
     classifier_blast;
@@ -50,28 +60,33 @@ include {
     variants_bcftools;
     variants_freebayes;
 
-} from '../subworkflows/local/variants_illumina' 
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    IMPORT NF-CORE MODULES/SUBWORKFLOWS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
+} from '../subworkflows/local/variants_illumina'
 
 //
 // MODULE: Installed directly from nf-core/modules
 //
-include {   CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+include {
+    CUSTOM_DUMPSOFTWAREVERSIONS
+} from '../modules/nf-core/custom/dumpsoftwareversions/main'
+
 include {
     CSVTK_CONCAT as CONCAT_STATS_SHORT_RAW;
     CSVTK_CONCAT as CONCAT_STATS_SHORT_QC;
     CSVTK_CONCAT as CONCAT_STATS_SUMMARY;
     CSVTK_CONCAT as CONCAT_NEXTCLADE;
-    
-} from '../modules/nf-core/csvtk/concat/main'
-include {   FREEBAYES   } from '../modules/nf-core/freebayes/main.nf'
-include {   BCFTOOLS_MPILEUP } from '../modules/nf-core/bcftools/mpileup/main.nf'
 
-include {   REPORT      } from '../modules/local/report'
+} from '../modules/nf-core/csvtk/concat/main'
+
+include {FREEBAYES
+} from '../modules/nf-core/freebayes/main.nf'
+
+include {
+    BCFTOOLS_MPILEUP
+} from '../modules/nf-core/bcftools/mpileup/main.nf'
+
+include {
+    REPORT
+} from '../modules/local/report'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -83,53 +98,68 @@ include {   REPORT      } from '../modules/local/report'
 def multiqc_report = []
 
 workflow ILLUMINA {
-    
+
     ch_versions = Channel.empty()
-    
+
     // SUBWORKFLOW: prepare reference databases ...
     PREPARE_REFERENCES ()
     ch_versions = ch_versions.mix(PREPARE_REFERENCES.out.versions)
-    
+
     //
     // SUBWORKFLOW: Read in samplesheet, validate and stage input files
     //
     INPUT_CHECK (ch_input)
     ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
-    illumina_reads = INPUT_CHECK.out.reads
+    illumina_reads = INPUT_CHECK.out.shortreads
+
+
+    /*
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        sequence quality control
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
+
 
     if(!params.skip_illumina_reads_qc){
         QC_ILLUMINA(
-            illumina_reads, 
-            PREPARE_REFERENCES.out.ch_flu_primers, 
+            illumina_reads,
+            PREPARE_REFERENCES.out.ch_flu_primers,
             PREPARE_REFERENCES.out.ch_hostile_ref_bowtie2
         )
         QC_ILLUMINA.out.qc_stats.view()
         ch_versions = ch_versions.mix(QC_ILLUMINA.out.versions)
-    
+
         //get rid of zero size read file and avoid the downstream crash
         QC_ILLUMINA.out.qc_reads
             .filter {meta, reads -> reads[0].size() > 0 && reads[0].countFastq() > 0}
-            .set { illumina_reads } 
+            .set { illumina_reads }
     }
 
-    /* ########## map reads to selected references ########## */
+    /*
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        Identify the closely related rerference through mapping
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
     MAPPING_ILLUMINA(
-        illumina_reads, 
-        PREPARE_REFERENCES.out.ch_flu_db_msh, 
+        illumina_reads,
+        PREPARE_REFERENCES.out.ch_flu_db_msh,
         PREPARE_REFERENCES.out.ch_flu_db_fasta
     )
-    
     ch_versions.mix(MAPPING_ILLUMINA.out.versions)
 
-    // mask low depth region of the fasta reference 
+    /*
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        variant calling
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
+
+    // mask low depth region of the fasta reference
     maskfasta(
-        MAPPING_ILLUMINA.out.bam_bai, 
+        MAPPING_ILLUMINA.out.bam_bai,
         MAPPING_ILLUMINA.out.fasta
     )
     fasta_fai = maskfasta.out.fasta_fai
     ch_versions.mix(maskfasta.out.versions)
-
-    /* ########## produce vcf files ########## */
     if(params.illumina_variant_caller == 'freebayes'){
         MAPPING_ILLUMINA.out.bam_bai.join(fasta_fai).multiMap {
             it ->
@@ -159,18 +189,29 @@ workflow ILLUMINA {
         ch_versions.mix(variants_bcftools.out.versions)
     }
 
-    //variants calling and consensus generrating
+    /*
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    consensus generrating
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
+
     vcf_tbi.join(fasta_fai).multiMap{
         it ->
-            vcf_tbi: [it[0], it[1], it[2]]
+            //vcf_tbi: [it[0], it[1], it[2]]
+            vcf: [it[0], it[1]]
             fasta: [it[0], it[3]]
     }.set{
         ch_input
     }
-    consensus(ch_input.vcf_tbi, ch_input.fasta)
+    consensus(ch_input.vcf, ch_input.fasta)
     ch_versions.mix(consensus.out.versions)
 
-    /* ########## typing contigs ########## */
+    /*
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Typing consensus
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
+
     classifier_blast(consensus.out.fasta, PREPARE_REFERENCES.out.ch_typing_db)
     ch_versions.mix(classifier_blast.out.versions)
 
@@ -183,8 +224,12 @@ workflow ILLUMINA {
     }
     classifier_nextclade(ch_input.consensus, ch_input.tsv)
     ch_versions.mix(classifier_nextclade.out.versions)
-   
-    //reporting
+
+    /*
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    producce analysis report
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
     ch_report = QC_ILLUMINA.out.input_stats.ifEmpty([])
         .join(QC_ILLUMINA.out.qc_stats.ifEmpty([]))
         .join(consensus.out.stats.ifEmpty([]))
@@ -199,7 +244,7 @@ workflow ILLUMINA {
                 blastn_outfmt6: [it[0], it[4]]
                 mapping_summary: [it[0], it[5]]
                 nextclade_csv: it[6].join(',')
-        } 
+        }
     REPORT(
         ch_report.raw_stats,
         ch_report.qc_stats,
@@ -207,14 +252,20 @@ workflow ILLUMINA {
         ch_report.blastn_outfmt6,
         ch_report.mapping_summary,
         ch_report.nextclade_csv
-    ) 
+    )
 
     CONCAT_STATS_SUMMARY(
         REPORT.out.oneline_csv.map { cfg, stats -> stats }.collect()
-            .map { files -> tuple([id: "summary_report"], files)}, 
-        "tsv", 
-        "tsv" 
-    )  
+            .map{
+                files ->
+                    tuple(
+                        [id: "report.consensus_" + params.illumina_reads_mapping_tool + "-" + params.illumina_variant_caller],
+                        files
+                    )
+        },
+        "tsv",
+        "tsv"
+    )
     //ch_versions.view()
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')

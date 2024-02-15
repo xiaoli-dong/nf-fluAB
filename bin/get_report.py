@@ -79,9 +79,9 @@ def parse_map_summary_file(path_to_file):
             id = row.pop("segmentid")
             # Human|7|M|H1N1|Kenya|A/Kenya/035/2018|A|na|na|na
             query_id = row["query-ID"]
-            print(query_id)
+            #print(query_id)
             x = row["query-comment"].split("|")
-            print(x)
+            #print(x)
             row["host"] = x[0]
             row["segment_number"] = x[1]
             row["segment_name"] = x[2]
@@ -91,7 +91,7 @@ def parse_map_summary_file(path_to_file):
             refs[id]["mapping"] = row
             # refs[id] = row
     sorted_refs = {i: refs[i] for i in sorted(refs.keys())}
-    print(sorted_refs)
+    #print(sorted_refs)
     return sorted_refs
 
 
@@ -120,7 +120,11 @@ def parse_seqkit_fx2tab_file(path_to_file):
             refs[id] = {}
             refs[id]["consensus_stats"] = tsv
     sorted_refs = {i: refs[i] for i in sorted(refs.keys())}
-    print(sorted_refs)
+    #print(sorted_refs)
+    for key, value_dict in sorted_refs.items():
+        print("key*********************" + key)
+        #print(value_dict)
+        
     return sorted_refs
 
 
@@ -180,7 +184,7 @@ def parse_typing_file(path_to_file):
             refs[id]["typing"] = record_dict
 
     sorted_refs = {i: refs[i] for i in sorted(refs.keys())}
-    print(sorted_refs)
+    #print(sorted_refs)
     return sorted_refs
 
 
@@ -190,8 +194,8 @@ def parse_nextclade_csv_files(path_to_files):
     if path_to_files is None:
         return refs
 
-    print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-    print(path_to_files)
+    #print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+    #print(path_to_files)
     for path_to_file in path_to_files.split(sep=","):
         if os.path.exists(path_to_file) == False or os.path.isfile(path_to_file) == False:
             print(f"\nERROR: nextclade csv file {path_to_file} does not exist.\n")
@@ -206,8 +210,8 @@ def parse_nextclade_csv_files(path_to_files):
         with open(path_to_file, "r", encoding="utf8") as nextclade_csv_file:
             reader = csv.DictReader(nextclade_csv_file, delimiter="\t")
             for row in reader:
-                print(type(row))
-                id = row.pop("seqName")
+                #print(type(row))
+                id = row.pop("seqName").split(" ")[0]
                 # Human|7|M|H1N1|Kenya|A/Kenya/035/2018|A|na|na|na
                 # refs[id] = slicedict(row, "clade")
                 refs[id] = {}
@@ -215,7 +219,7 @@ def parse_nextclade_csv_files(path_to_files):
                 refs[id]["clade"] = slicedict(row, "clade")
 
     sorted_refs = {i: refs[i] for i in sorted(refs.keys())}
-    print(sorted_refs)
+    #print(sorted_refs)
     return sorted_refs
 
 
@@ -330,13 +334,13 @@ def main():
     consensus_stats = parse_seqkit_fx2tab_file(args.seqkit_fx2tab_file)
     mapping_summary = parse_map_summary_file(args.mapping_summary_file)
     types = parse_typing_file(args.blastn_typing_file)
-    print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxttttttttttttttt")
+    #print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxttttttttttttttt")
     nextclade = parse_nextclade_csv_files(args.nextclade_csv_files)
-    print(nextclade)
-    print("yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy")
+    #print(nextclade)
+    #print("yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy")
     total_summary = dict_merge(summary, consensus_stats, mapping_summary, types, nextclade)
     jsonString = json.dumps(total_summary, indent=4)
-    print(jsonString)
+    #print(jsonString)
     json_summary_file = open(f"{args.prefix}.json", "w")
     json_summary_file.write(jsonString)
     json_summary_file.close()
@@ -372,44 +376,75 @@ def main():
         "ref_identity",  # "mash_distance",
         "ref_shared-hashes",  # "minhashes",
     ]
+    h_len = len(header)
     # print(",".join(header))
     segment_summary_file.write(",".join(header))
     segment_summary_file.write("\n")
+
+    prefix = ""
     for key, value_dict in total_summary.items():
         if key in ["sname", "raw_reads", "qc_reads"]:
             continue
-        print(key)
+        matches = re.findall(".*segment_", key) 
+        # Output the matches 
+        if(len(matches) > 0):
+            prefix = matches[0]
+            break
+    
+    """  for key, value_dict in total_summary.items():
+        if key in ["sname", "raw_reads", "qc_reads"]:
+            continue
+        #print(key)
+        #print(value_dict)
+     """
+    for segment in list(range(1, 9, 1)) :
         values = []
-        values.append(key)
-        values.append(value_dict["consensus_stats"]["gene_length"])
-        values.append(value_dict["consensus_stats"]["ATCG"])
-        values.append(value_dict["consensus_stats"]["N"])
-        values.append(value_dict["consensus_stats"]["percent_complete"])
-        values.append(value_dict["consensus_stats"]["percentN"])
-        values.append(value_dict["mapping"]["numreads"])
-        values.append(value_dict["mapping"]["covbases"])
-        values.append(value_dict["mapping"]["coverage"])
-        values.append(value_dict["mapping"]["meandepth"])
-        if "typing" in value_dict.keys():
-            values.append(value_dict["typing"]["type"])
-            values.append(value_dict["typing"]["pident"])
-            values.append(value_dict["typing"]["qcovs"])
-            values.append(value_dict["typing"]["typing_accession"])
-        else:
-            values.extend(["na", "na", "na", "na"])
+        print(segment)
+        if prefix + str(segment) in total_summary:
+            value_dict = total_summary[prefix + str(segment)]
+            print(value_dict)
+            values.append(prefix + str(segment) )
+            if "consensus_stats" in value_dict:
+                values.append(value_dict["consensus_stats"]["gene_length"])
+                values.append(value_dict["consensus_stats"]["ATCG"])
+                values.append(value_dict["consensus_stats"]["N"])
+                values.append(value_dict["consensus_stats"]["percent_complete"])
+                values.append(value_dict["consensus_stats"]["percentN"])
+            else:
+                 values.extend(["na"] * 5)
+            if "mapping" in value_dict:
+                values.append(value_dict["mapping"]["numreads"])
+                values.append(value_dict["mapping"]["covbases"])
+                values.append(value_dict["mapping"]["coverage"])
+                values.append(value_dict["mapping"]["meandepth"])
+            else:
+                 values.extend(["na"] * 4)
 
-        if "clade" in value_dict.keys():
-            values.append(value_dict["clade"]["clade"])
-        else:
-            values.append("na")
-        values.append(value_dict["mapping"]["query-ID"])
-        values.append(value_dict["mapping"]["segment_number"])
-        values.append(value_dict["mapping"]["segment_name"])
-        values.append(value_dict["mapping"]["serotype"])
-        values.append(value_dict["mapping"]["virus_name"])
-        values.append(value_dict["mapping"]["identity"])
-        values.append(value_dict["mapping"]["shared-hashes"])
+            if "typing" in value_dict.keys():
+                values.append(value_dict["typing"]["type"])
+                values.append(value_dict["typing"]["pident"])
+                values.append(value_dict["typing"]["qcovs"])
+                values.append(value_dict["typing"]["typing_accession"])
+            else:
+                values.extend(["na"] * 4)
 
+            if "clade" in value_dict.keys():
+                values.append(value_dict["clade"]["clade"])
+            else:
+                values.append("na")
+            if "mapping" in value_dict:   
+                values.append(value_dict["mapping"]["query-ID"])
+                values.append(value_dict["mapping"]["segment_number"])
+                values.append(value_dict["mapping"]["segment_name"])
+                values.append(value_dict["mapping"]["serotype"])
+                values.append(value_dict["mapping"]["virus_name"])
+                values.append(value_dict["mapping"]["identity"])
+                values.append(value_dict["mapping"]["shared-hashes"])
+            else:
+                values.extend(["na"] * 7)
+        else:
+            values.append(prefix + str(segment))
+            values.extend(['na'] * (h_len -1))
         # when list contain both number and str, it raises typeError for join
         # convert list to str
         all_strings = list(map(str, values))
@@ -432,6 +467,7 @@ def main():
         "typing_accession",
         "clade",
     ]
+    h_len = len(header)
 
     # 8 segments
     one_liner_header = header * 8
@@ -440,28 +476,45 @@ def main():
     segment_summary_oneline_file.write(",".join(one_liner_header))
     segment_summary_oneline_file.write("\n")
     values = []
-    for key, value_dict in total_summary.items():
+    """  for key, value_dict in total_summary.items():
+        #print("********************" + key)
         if key in ["sname", "raw_reads", "qc_reads"]:
-            continue
+            continue """
+    
+    for segment in list(range(1, 9, 1)) :
+        #values = []
+        if prefix + str(segment) in total_summary:
+            value_dict = total_summary[prefix + str(segment)]
+            values.append(prefix + str(segment))
+            #print(key)
+            if "consensus_stats" in value_dict:
+                values.append(value_dict["consensus_stats"]["gene_length"])
+                values.append(value_dict["consensus_stats"]["percent_complete"])
+                values.append(value_dict["consensus_stats"]["percentN"])
+            else:
+                values.extend(["na"] * 3)
+            
+            if "mapping" in value_dict:
+                values.append(value_dict["mapping"]["numreads"])
+                values.append(value_dict["mapping"]["covbases"])
+                values.append(value_dict["mapping"]["coverage"])
+                values.append(value_dict["mapping"]["meandepth"])
+            else:
+                values.extend(["na"] * 4)
+                
+            if "typing" in value_dict.keys():
+                values.append(value_dict["typing"]["type"])
+                values.append(value_dict["typing"]["typing_accession"])
+            else:
+                values.extend(["na", "na"])
 
-        values.append(key)
-        values.append(value_dict["consensus_stats"]["gene_length"])
-        values.append(value_dict["consensus_stats"]["percent_complete"])
-        values.append(value_dict["consensus_stats"]["percentN"])
-        values.append(value_dict["mapping"]["numreads"])
-        values.append(value_dict["mapping"]["covbases"])
-        values.append(value_dict["mapping"]["coverage"])
-        values.append(value_dict["mapping"]["meandepth"])
-        if "typing" in value_dict.keys():
-            values.append(value_dict["typing"]["type"])
-            values.append(value_dict["typing"]["typing_accession"])
+            if "clade" in value_dict.keys():
+                values.append(value_dict["clade"]["clade"])
+            else:
+                values.append("na")
         else:
-            values.extend(["na", "na", "na", "na"])
-
-        if "clade" in value_dict.keys():
-            values.append(value_dict["clade"]["clade"])
-        else:
-            values.append("na")
+            values.append(prefix + str(segment))
+            values.extend(['na'] * (h_len -1))
 
     # when list contain both number and str, it raises typeError for join
     # convert list to str

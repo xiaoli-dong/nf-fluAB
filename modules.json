@@ -97,7 +97,7 @@
                     },
                     "fastp": {
                         "branch": "master",
-                        "git_sha": "1e49f31e93c56a3832833eef90a02d3cde5a3f7e",
+                        "git_sha": "003920c7f9a8ae19b69a97171922880220bedf56",
                         "installed_by": ["modules"]
                     },
                     "fastqc": {
@@ -188,6 +188,16 @@
                     "seqkit/fx2tab": {
                         "branch": "master",
                         "git_sha": "0caab709e3ce515d5562209b21b46971cdd18787",
+                        "installed_by": ["modules"]
+                    },
+                    "seqkit/sort": {
+                        "branch": "master",
+                        "git_sha": "ffcdfb354f8c8e59bdccc1a4249f0f3b232c2a3d",
+                        "installed_by": ["modules"]
+                    },
+                    "seqkit/tab2fx": {
+                        "branch": "master",
+                        "git_sha": "0d0267e1474331d9a1c4901ae212c37e46d15937",
                         "installed_by": ["modules"]
                     },
                     "tabix/bgzip": {

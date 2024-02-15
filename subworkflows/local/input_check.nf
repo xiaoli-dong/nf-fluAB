@@ -2,43 +2,103 @@
 // Check input samplesheet and get read channels
 //
 
-include { SAMPLESHEET_CHECK } from '../../modules/local/samplesheet_check'
+include {
+    SAMPLESHEETCHECK
+} from '../../modules/local/samplesheetcheck'
 
 workflow INPUT_CHECK {
     take:
     samplesheet // file: /path/to/samplesheet.csv
 
     main:
-    SAMPLESHEET_CHECK ( samplesheet )
+    SAMPLESHEETCHECK ( samplesheet )
         .csv
         .splitCsv ( header:true, sep:',' )
-        .map { create_fastq_channel(it) }
+        .map { create_read_channels(it) }
         .set { reads }
 
+    //reads.view()
+
+    reads.map {
+        meta, reads, long_fastq -> [ meta, reads ] }
+        .filter{ meta, reads -> reads[0] != 'NA' && reads[1] != 'NA' }
+        .set { shortreads }
+
+    //shortreads.view()
+
+
+    reads.map {
+        meta, reads, long_fastq -> [ meta, long_fastq ] }
+        .filter{ meta, long_fastq -> long_fastq != 'NA' }
+        .set { longreads }
+
+    //longreads.view()
+
+
     emit:
-    reads                                     // channel: [ val(meta), [ reads ] ]
-    versions = SAMPLESHEET_CHECK.out.versions // channel: [ versions.yml ]
+    reads      // channel: [ val(meta), [ reads ], long_fastq ]
+    shortreads // channel: [ val(meta), [ reads ] ]
+    longreads  // channel: [ val(meta), long_fastq ]
+    versions = SAMPLESHEETCHECK.out.versions // channel: [ versions.yml ]
 }
 
-// Function to get list of [ meta, [ fastq_1, fastq_2 ] ]
-def create_fastq_channel(LinkedHashMap row) {
-    // create meta map
-    def meta = [:]
-    meta.id         = row.sample
-    meta.single_end = row.single_end.toBoolean()
+// Function to get list of [ meta, [ fastq_1, fastq_2 ], long_fastq ]
+def create_read_channels(LinkedHashMap row) {
 
-    // add path(s) of the fastq file(s) to the meta map
-    def fastq_meta = []
-    if (!file(row.fastq_1).exists()) {
-        exit 1, "ERROR: Please check input samplesheet -> Read 1 FastQ file does not exist!\n${row.fastq_1}"
-    }
-    if (meta.single_end) {
-        fastq_meta = [ meta, [ file(row.fastq_1) ] ]
+    def meta = [:]
+    meta.id           = row.sample
+    meta.single_end   = !(row.fastq_1 == 'NA') && !(row.fastq_2 == 'NA') ? false : true
+    //meta.basecaller_mode = row.basecaller_mode == null ? 'NA' : row.basecaller_mode
+
+
+    def array = []
+    // check short reads
+    if ( !(row.fastq_1 == 'NA') ) {
+        if ( !file(row.fastq_1).exists() ) {
+            exit 1, "ERROR: Please check input samplesheet -> Read 1 FastQ file does not exist!\n${row.fastq_1}"
+        }
+
+        if(file(row.fastq_1).size() == 0){
+            exit 1, "ERROR: Please check input samplesheet -> Read 1 FastQ file is empty!\n${row.fastq_1}"
+        }
+
+        fastq_1 = file(row.fastq_1)
     } else {
-        if (!file(row.fastq_2).exists()) {
+        fastq_1 = 'NA'
+    }
+
+    if ( !(row.fastq_2 == 'NA') ) {
+        if ( !file(row.fastq_2).exists() ) {
             exit 1, "ERROR: Please check input samplesheet -> Read 2 FastQ file does not exist!\n${row.fastq_2}"
         }
-        fastq_meta = [ meta, [ file(row.fastq_1), file(row.fastq_2) ] ]
+
+        if(file(row.fastq_2).size() == 0){
+            exit 1, "ERROR: Please check input samplesheet -> Read 1 FastQ file is empty!\n${row.fastq_2}"
+        }
+        fastq_2 = file(row.fastq_2)
+    } else {
+        fastq_2 = 'NA'
     }
-    return fastq_meta
+
+    // check long_fastq
+    if ( !(row.long_fastq == 'NA') ) {
+        if ( !file(row.long_fastq).exists() ) {
+            exit 1, "ERROR: Please check input samplesheet -> Long FastQ file does not exist!\n${row.long_fastq}"
+        }
+
+        if(file(row.long_fastq).size() == 0){
+            exit 1, "ERROR: Please check input samplesheet -> Read 1 FastQ file is empty!\n${row.long_fastq}"
+        }
+        long_fastq = file(row.long_fastq)
+    } else { long_fastq = 'NA' }
+
+
+    // prepare output // currently does not allow single end data!
+    if ( meta.single_end ) {
+        array = [ meta, fastq_1 , long_fastq]
+    } else {
+        array = [ meta, [ fastq_1, fastq_2 ], long_fastq]
+    }
+
+    return array
 }

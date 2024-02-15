@@ -12,6 +12,7 @@ include {
 } from '../../modules/local/bcftools/setGT/main.nf'
 
 include {
+    TABIX_TABIX as TABIX_TABIX_VCF;
     TABIX_TABIX as TABIX_TABIX_BIALLELIC;
     TABIX_TABIX as TABIX_TABIX_BIALLELIC_FILTERED;
     TABIX_TABIX as TABIX_TABIX_SETGT;
@@ -22,32 +23,69 @@ include {
 } from '../../modules/nf-core/bcftools/consensus'
 
 include {
-    SEQKIT_FX2TAB as SEQKIT_FX2TAB_CONSENSUS
+    SEQKIT_FX2TAB as SEQKIT_FX2TAB_CONSENSUS;
+     SEQKIT_FX2TAB as SEQKIT_FX2TAB_REFORMAT;
 } from '../../modules/nf-core/seqkit/fx2tab'
+
+include {
+    SEQKIT_SORT
+} from '../../modules/nf-core/seqkit/sort'
 
 include {
     REHEADER;
 } from '../../modules/local/misc'
-
+include { SEQKIT_TAB2FX } from '../../modules/nf-core/seqkit/tab2fx/main'    
 workflow consensus {   
 
     take:
-        vcf_tbi
+        vcf
         fasta //[meta, fasta]
     main:
         ch_versions = Channel.empty()
         
-        /* vcf_tbi.join(fasta).multiMap{
+        /*
+        handle empty vcf file
+        */
+        /*
+        vcf.filter{
+            meta, sample_vcf ->
+            def line_count = 0
+            def num_variants = 0
+            def enough_variants = false
+            // make sure that the VCF has at least 1 variant, then stop counting
+            InputStream fileStream = new FileInputStream(sample_vcf.toFile());
+            InputStream gzipStream = new java.util.zip.GZIPInputStream(fileStream);
+            BufferedReader br = new BufferedReader(new InputStreamReader(gzipStream));
+            
+            while ((line = br.readLine()) != null) {
+                if (! line.startsWith("#")) num_variants++
+                if (num_variants > 0) {
+                    enough_variants = true
+                    break
+                    }
+                line_count++
+            }   
+            println ">>> Read ${line_count} lines from file ${sample_vcf} and found ${num_variants} variants"
+            if(! enough_variants) println ">>> WARNING: File ${sample_vcf} does not have enough variants and will not be included"
+            
+            enough_variants
+        }.set{
+            filtered_vcf
+        }
+        */
+        TABIX_TABIX_VCF(vcf)
+        
+        //vcf.join(TABIX_TABIX_VCF.out.tbi).join(fasta).view()
+        vcf.join(TABIX_TABIX_VCF.out.tbi).join(fasta).multiMap{
             it ->
                 vcf_tbi: [it[0], it[1], it[2]] //[meta, vcf.gz, vcf.gz.tbi]
                 fasta: [it[0], it[3]] 
-        }
-        .set{
+        }.set{
             ch_input
-        } */
-
+        } 
+        
         //Convert multiallelic to biallelic vcf first, output vcf.gz and index it
-        BCFTOOLS_NORM_BIALLELIC(vcf_tbi, fasta)
+        BCFTOOLS_NORM_BIALLELIC(ch_input.vcf_tbi, ch_input.fasta)
         ch_versions.mix(BCFTOOLS_NORM_BIALLELIC.out.versions)
         TABIX_TABIX_BIALLELIC(BCFTOOLS_NORM_BIALLELIC.out.vcf)
         ch_versions.mix(TABIX_TABIX_BIALLELIC.out.versions)
@@ -87,15 +125,25 @@ workflow consensus {
         TABIX_TABIX_SETGT(BCFTOOLS_SETGT.out.vcf)
         BCFTOOLS_CONSENSUS(BCFTOOLS_SETGT.out.vcf.join(TABIX_TABIX_SETGT.out.tbi).join(fasta))
         ch_versions.mix(BCFTOOLS_CONSENSUS.out.versions)
+        
+        SEQKIT_FX2TAB_REFORMAT(BCFTOOLS_CONSENSUS.out.fasta)
+        REHEADER(SEQKIT_FX2TAB_REFORMAT.out.text)
 
-        REHEADER(BCFTOOLS_CONSENSUS.out.fasta)
+        //reformated and filtered fasta
+        SEQKIT_TAB2FX(REHEADER.out.txt)     
+
+        //REHEADER(BCFTOOLS_CONSENSUS.out.fasta)
         ch_versions.mix(REHEADER.out.versions)
-
-        SEQKIT_FX2TAB_CONSENSUS(REHEADER.out.consensus_fasta)
+        SEQKIT_SORT(SEQKIT_TAB2FX.out.fastx)
+        //SEQKIT_SORT(REHEADER.out.consensus_fasta)
+        ch_versions = ch_versions.mix(SEQKIT_SORT.out.versions)
+        
+        SEQKIT_FX2TAB_CONSENSUS(SEQKIT_SORT.out.fastx)
         ch_versions = ch_versions.mix(SEQKIT_FX2TAB_CONSENSUS.out.versions)
        
+
     emit:
-        fasta = REHEADER.out.consensus_fasta
+        fasta = SEQKIT_SORT.out.fastx
         stats = SEQKIT_FX2TAB_CONSENSUS.out.text
         versions = ch_versions
         

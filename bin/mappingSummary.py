@@ -89,6 +89,13 @@ def main():
         required=False,
         help=f"The output file name for tabular format\n",
     )
+    
+    parser.add_argument(
+        "-p",
+        "--prefix",
+        default="",
+        help=f"The prefix of each segmentid\n",
+    )
 
     args = parser.parse_args()
     results = parse_mash_screen_file(args.mash_screen_file)
@@ -123,6 +130,13 @@ def main():
     ]
     # print("\t".join(fieldnames))
     # Open the file in writing mode
+    
+    id_prefix = args.sample_name + "_" + "segment"
+
+    if args.prefix:
+        id_prefix = args.prefix
+    
+
     with open(f"{args.tsv_output}", "w", newline="") as f:
         # using csv.writer method from CSV package
         write = csv.writer(f, delimiter="\t")
@@ -135,7 +149,8 @@ def main():
                 line = [
                     # args.sample_name,
                     # args.sample_name + "_" + "segment_" + x[0],
-                    args.sample_name + "_" + "segment" + x[0],
+                    #args.sample_name + "_" + "segment" + x[0],
+                    id_prefix +  "_"  + x[0],
                     # x[1],
                     # acc,
                     cov_dict[acc]["startpos"],

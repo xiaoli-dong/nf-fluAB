@@ -29,15 +29,17 @@ By default, the pipeline supports both short and long reads:
     - Short Illumina reads quality checks ([FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
     - Short read quality control ([fastp](https://github.com/OpenGene/fastp))
     - Short read statistics ([seqkit stats](https://bioinf.shenwei.me/seqkit/usage/#stats))
+    - Remove host genomes ([Hostile](https://github.com/bede/hostile))
     
   - Long reads
     - Nanopore long read quality checks ([NanoPlot](https://github.com/wdecoster/NanoPlot))
     - Nanopore long read adapter trimming ([Porechop](https://github.com/rrwick/Porechop))
     - Nanopore long read quality and length filter ([chopper](https://github.com/wdecoster/chopper))
     - Nanopore long read statistics ([seqkit stats](https://bioinf.shenwei.me/seqkit/usage/#stats))
-- Assembly
+    - Remove host genomes ([Hostile](https://github.com/bede/hostile))
+- Consensus/Assembly
   - Short read assembly ([mash](https://github.com/marbl/Mash)|[bwa](https://github.com/lh3/bwa)|[samtools](https://github.com/samtools/samtools)|[freebayes](https://github.com/freebayes/freebayes)|[bcftools](https://github.com/samtools/bcftools)|[bioawk](https://github.com/lh3/bioawk))
-  - Long read assembly 
+  - Long read assembly ([mash](https://github.com/marbl/Mash)|[Minimap2](https://github.com/lh3/minimap2)|[clair3](https://github.com/HKU-BAL/Clair3)|[bcf](https://samtools.github.io/bcftools/))
 
 - Classification
   - Flu typing: [Blastn](https://blast.ncbi.nlm.nih.gov/doc/blast-help/downloadblastdata.html) search against flu typing database

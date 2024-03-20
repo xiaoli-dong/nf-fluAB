@@ -7,7 +7,6 @@ import csv, operator
 def main():
     description = """
         program is used filter out the rows from the mash screen out:
-            whose access ids are in the exclusion list;
             only keep the row with the best identity for each named segment 
         """
     parser = argparse.ArgumentParser(description=description)
@@ -34,7 +33,9 @@ def main():
 
     f = open(f"{args.prefix}.screen", "w", encoding="utf-8")
     segments = {"PB1": False, "PB2": False, "PA": False, "HA": False, "NP": False, "NA": False, "M": False, "NS": False}
-
+    header = ['identity', 'shared-hashes', 'median-multiplicity', 'p-value', 'query-ID', 'query-comment']
+    f.writelines("\t".join(header) + "\n")
+    
     with open(args.input) as file:
         csvData = csv.reader(file, delimiter="\t")
 
@@ -44,7 +45,7 @@ def main():
             key=operator.itemgetter(0),
             reverse=True,
         )
-
+       
         for line in csvData:
             # parse query-comment
             fields = line[5].split("|")

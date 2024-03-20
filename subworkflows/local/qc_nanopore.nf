@@ -8,17 +8,17 @@ include {PORECHOP_PORECHOP}  from '../../modules/nf-core/porechop/porechop/main.
 include {CHOPPER} from '../../modules/local/chopper/main.nf'
 include {HOSTILE} from '../../modules/local/hostile/main'
 include {
-    SEQKIT_STATS as SEQKIT_STATS_INPUT
-    SEQKIT_STATS as SEQKIT_STATS_PORECHOP;
-    SEQKIT_STATS as SEQKIT_STATS_CHOPPER;
-    SEQKIT_STATS as SEQKIT_STATS_HOSTILE;
+    SEQKIT_STATS as INPUT_STATS
+    SEQKIT_STATS as PORECHOP_STATS;
+    SEQKIT_STATS as CHOPPER_STATS;
+    SEQKIT_STATS as HOSTILE_STATS;
 } from '../../modules/local/seqkit/stats/main'
 
 include {
-    CSVTK_CONCAT as CSVTK_CONCAT_STATS_INPUT;
-    CSVTK_CONCAT as CSVTK_CONCAT_STATS_PORECHOP;
-    CSVTK_CONCAT as CSVTK_CONCAT_STATS_CHOPPER;
-    CSVTK_CONCAT as CSVTK_CONCAT_STATS_HOSTILE;
+    CSVTK_CONCAT as CONCAT_INPUT_STATS;
+    CSVTK_CONCAT as CONCAT_PORECHOP_STATS;
+    CSVTK_CONCAT as CONCAT_CHOPPER_STATS;
+    CSVTK_CONCAT as CONCAT_HOSTILE_STATS;
 } from '../../modules/nf-core/csvtk/concat/main'
 
 workflow QC_NANOPORE {
@@ -33,21 +33,22 @@ workflow QC_NANOPORE {
         NANOPLOT_INPUT(reads)
         ch_versions = ch_versions.mix(NANOPLOT_INPUT.out.versions.first())
         //reads.view()
-        SEQKIT_STATS_INPUT(reads)
-        ch_versions = ch_versions.mix(SEQKIT_STATS_INPUT.out.versions.first())
+        INPUT_STATS(reads)
+        ch_versions = ch_versions.mix(INPUT_STATS.out.versions.first())
         
         // QC
         PORECHOP_PORECHOP(reads)
-        SEQKIT_STATS_PORECHOP(PORECHOP_PORECHOP.out.reads)
+        PORECHOP_STATS(PORECHOP_PORECHOP.out.reads)
         ch_versions = ch_versions.mix(PORECHOP_PORECHOP.out.versions.first())
+         ch_versions = ch_versions.mix(PORECHOP_STATS.out.versions.first())
         
         CHOPPER(PORECHOP_PORECHOP.out.reads)
         ch_versions = ch_versions.mix(CHOPPER.out.versions.first())
-        SEQKIT_STATS_CHOPPER(CHOPPER.out.fastq)
+        CHOPPER_STATS(CHOPPER.out.fastq)
 
         HOSTILE(CHOPPER.out.fastq, "minimap2", hostile_human_ref)
         ch_versions = ch_versions.mix(HOSTILE.out.versions.first())
-        SEQKIT_STATS_HOSTILE(HOSTILE.out.reads)
+        HOSTILE_STATS(HOSTILE.out.reads)
 
         qc_reads = HOSTILE.out.reads //gzip compressed
                
@@ -55,15 +56,15 @@ workflow QC_NANOPORE {
         
         in_format = "tsv"
         out_format = "tsv"
-        CSVTK_CONCAT_STATS_INPUT(SEQKIT_STATS_INPUT.out.stats.map { cfg, stats -> stats }.collect().map { files -> tuple([id:"nanopore_reads.input_seqstats"], files)}, in_format, out_format )
-        CSVTK_CONCAT_STATS_PORECHOP(SEQKIT_STATS_PORECHOP.out.stats.map { cfg, stats -> stats }.collect().map { files -> tuple([id:"nanopore_reads.porechop_seqstats"], files)}, in_format, out_format ) 
-        CSVTK_CONCAT_STATS_CHOPPER(SEQKIT_STATS_CHOPPER.out.stats.map { cfg, stats -> stats }.collect().map { files -> tuple([id:"nanopore_reads.chopper_seqstats"], files)}, in_format, out_format ) 
-        CSVTK_CONCAT_STATS_HOSTILE(SEQKIT_STATS_HOSTILE.out.stats.map { cfg, stats -> stats }.collect().map { files -> tuple([id:"nanopore_reads.dehost_seqstats"], files)}, in_format, out_format ) 
+        CONCAT_INPUT_STATS(INPUT_STATS.out.stats.map { cfg, stats -> stats }.collect().map { files -> tuple([id:"nanopore_reads.input_seqstats"], files)}, in_format, out_format )
+        CONCAT_PORECHOP_STATS(PORECHOP_STATS.out.stats.map { cfg, stats -> stats }.collect().map { files -> tuple([id:"nanopore_reads.porechop_seqstats"], files)}, in_format, out_format ) 
+        CONCAT_CHOPPER_STATS(CHOPPER_STATS.out.stats.map { cfg, stats -> stats }.collect().map { files -> tuple([id:"nanopore_reads.chopper_seqstats"], files)}, in_format, out_format ) 
+        CONCAT_HOSTILE_STATS(HOSTILE_STATS.out.stats.map { cfg, stats -> stats }.collect().map { files -> tuple([id:"nanopore_reads.dehost_seqstats"], files)}, in_format, out_format ) 
 
     emit:
         qc_reads
-        input_stats = SEQKIT_STATS_INPUT.out.stats
-        qc_stats = SEQKIT_STATS_HOSTILE.out.stats
+        input_stats = INPUT_STATS.out.stats
+        qc_stats = HOSTILE_STATS.out.stats
         versions = ch_versions
 
 }

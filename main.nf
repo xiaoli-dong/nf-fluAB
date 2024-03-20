@@ -1,4 +1,5 @@
 #!/usr/bin/env nextflow
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     nf-core/influenza
@@ -12,20 +13,6 @@
 
 nextflow.enable.dsl = 2
 
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    GENOME PARAMETER VALUES
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-//params.fasta = WorkflowMain.getGenomeAttribute(params, 'fasta')
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    VALIDATE & PRINT PARAMETER SUMMARY
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
 WorkflowMain.initialise(workflow, params, log)
 
 /*
@@ -36,7 +23,8 @@ WorkflowMain.initialise(workflow, params, log)
 
 if (params.platform == 'illumina') {
     include { ILLUMINA } from './workflows/illumina'
-} else if (params.platform == 'nanopore') {
+} 
+else if (params.platform == 'nanopore') {
     include { NANOPORE } from './workflows/nanopore'
 }
 
@@ -45,17 +33,11 @@ if (params.platform == 'illumina') {
 //
 workflow NFCORE_INFLUENZA {
 
-    //INFLUENZA ()
-       //
-    // WORKFLOW: for Illumina data
-    //
+    
     if (params.platform == 'illumina') {
         ILLUMINA ()
-
-    //
-    // WORKFLOW:  for Nanopore data
-    //
-    } else if (params.platform == 'nanopore') {
+    }
+    else if (params.platform == 'nanopore') {
         NANOPORE ()
     }
 }
@@ -66,10 +48,6 @@ workflow NFCORE_INFLUENZA {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-//github.com/nf-core/rnaseq/issues/619
-////
-// WORKFLOW: Execute a single named workflow for the pipeline
-// See: https
 workflow {
     NFCORE_INFLUENZA ()
 }

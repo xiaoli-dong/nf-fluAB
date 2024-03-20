@@ -10,7 +10,8 @@ include {
     SAMTOOLS_FAIDX
 } from '../../modules/nf-core/samtools/faidx/main'
 
-workflow maskfasta {   
+//mask fasta sequences for those low depth region < mindepth cutoff
+workflow MASK_FASTA_WITH_BAM {   
 
     take:
         bam_bai //[meta, bam, bai]
@@ -44,6 +45,27 @@ workflow maskfasta {
 
     emit:
         fasta_fai
+        versions = ch_versions
+        
+}
+
+//produce bed file for those low depth region < mindepth cutoff
+workflow BAM2LOW_DEPTH_BED {   
+
+    take:
+        bam_bai
+
+    main:
+        ch_versions = Channel.empty()
+        ch_input = bam_bai.map{
+            it -> [it[0], it[1], 1] //[meta, bam, scale]
+        }
+        //mask low depth regions of the reference
+        BEDTOOLS_GENOMECOV(ch_input, [], "bed")
+        ch_versions.mix(BEDTOOLS_GENOMECOV.out.versions)
+
+    emit:
+        bed = BEDTOOLS_GENOMECOV.out.genomecov
         versions = ch_versions
         
 }

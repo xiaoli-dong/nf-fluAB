@@ -1,7 +1,7 @@
 include {BLAST_BLASTN } from '../../modules/local/blast/blastn'
 include { CSVTK_ADD_HEADER as CSVTK_ADD_HEADER_BLASTN } from '../../modules/local/csvtk/add-header/main'
 
-workflow classifier_blast {   
+workflow CLASSIFIER_BLAST {   
 
     take:
         fasta //input contig
@@ -32,7 +32,7 @@ include {
     
 } from '../../modules/nf-core/csvtk/concat/main'
 
-workflow classifier_nextclade {   
+workflow CLASSIFIER_NEXTCLADE{   
 
     take:
         fasta

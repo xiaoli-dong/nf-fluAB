@@ -29,8 +29,11 @@ def parse_mash_screen_file(path_to_file):
     with open(path_to_file, "r", encoding="utf8") as tsv_file:
         tsv_reader = csv.reader(tsv_file, delimiter="\t")
         # print(tsv_reader)
+        next(tsv_reader, None)  # skip the headers
         for tsv in tsv_reader:
+            #print("====" + tsv[5])
             query_comment = tsv[5].split("|")
+            
             segName = query_comment[2]
             segid = query_comment[1]
             ref2segid[tsv[4]] = f"{segid}_{segName}"

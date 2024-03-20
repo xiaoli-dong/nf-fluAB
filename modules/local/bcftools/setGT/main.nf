@@ -34,8 +34,9 @@ process BCFTOOLS_SETGT {
     args 4, for indel, if the vaf < 0.5, set GT="0/0", carry reference
     */
     """
+   
     bcftools +setGT ${vcf} ${args} | bcftools +setGT ${args2} | bcftools +setGT ${args3} | bcftools +setGT -o ${prefix}.setgt.vcf.gz ${args4}
-    
+
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         bcftools: \$(bcftools --version 2>&1 | head -n1 | sed 's/^.*bcftools //; s/ .*\$//')

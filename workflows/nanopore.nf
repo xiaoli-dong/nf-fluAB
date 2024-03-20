@@ -3,16 +3,28 @@
     VALIDATE INPUTS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-
+def valid_params = [
+    nanopore_reads_mapping_tools : ['minimap2']
+]
 def summary_params = NfcoreSchema.paramsSummaryMap(workflow, params)
 
 // Validate input parameters
-WorkflowIllumina.initialise(params, log)
+WorkflowNanopore.initialise(params, log, valid_params)
 
 // TODO nf-core: Add all file path parameters for the pipeline to the list below
 // Check input path parameters to see if they exist
 //def checkPathParamList = [ params.input, params.multiqc_config, params.fasta ]
-def checkPathParamList = [ params.input]
+//def checkPathParamList = [ params.input]
+def checkPathParamList = [ 
+    params.input, 
+    params.hostile_human_ref_minimap2, 
+    params.flu_primers, 
+    params.typing_db, 
+    params.flu_db_msh, 
+    params.flu_db_fasta,
+    params.clair3_variant_model,
+    params.nextclade_dataset_base
+]
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 // Check mandatory parameters
@@ -40,24 +52,36 @@ include {
 } from '../subworkflows/local/qc_nanopore'
 
 include {
+    GET_REF_BY_MASH
+} from '../subworkflows/local/get_references'
+
+include {
     MAPPING_NANOPORE
 } from '../subworkflows/local/mapping_nanopore'
 
 include {
-    classifier_blast;
-    classifier_nextclade;
+    PREPROCESS_BAM
+} from '../subworkflows/local/preprocess_bam'
+
+include {
+    MAPPING_SUMMARY;
+} from '../modules/local/misc'
+
+include {
+    CLASSIFIER_BLAST;
+    CLASSIFIER_NEXTCLADE;
 } from '../subworkflows/local/classifier'
 
 include {
-    maskfasta
-} from '../subworkflows/local/maskfasta'
+    BAM2LOW_DEPTH_BED;
+} from '../subworkflows/local/mask'
 
 include {
-    variants_clair3;
+    VARIANTS_NANOPORE;
 } from '../subworkflows/local/variants_nanopore'
 
 include {
-    consensus
+    CONSENSUS
 } from '../subworkflows/local/consensus'
 
 
@@ -90,17 +114,10 @@ include {
 } from '../modules/local/report'
 
 include {
-    CLAIR3
-} from '../modules/local/clair3/main'
+    SAMTOOLS_FAIDX
+} from '../modules/nf-core/samtools/faidx/main'
 
 
-
-
-/*String inString = 'whatever'
-String zipString = zip(inString)
-String unzippedString = unzip(zipString)
-assert(inString == unzippedString)
-*/
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RUN MAIN WORKFLOW
@@ -143,67 +160,102 @@ workflow NANOPORE {
         .set { nanopore_reads }
     ch_versions = ch_versions.mix(QC_NANOPORE.out.versions)
 
+     /*
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        Identify the closely related rerference through mash
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
+    GET_REF_BY_MASH(
+        nanopore_reads, 
+        PREPARE_REFERENCES.out.ch_flu_db_msh, 
+        PREPARE_REFERENCES.out.ch_flu_db_fasta
+    )
+    ch_versions.mix(GET_REF_BY_MASH.out.versions)
+    ch_screen = GET_REF_BY_MASH.out.screen
+    ch_fasta_fai = GET_REF_BY_MASH.out.fasta_fai
 
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        Identify the closely related rerference through mapping
+        Mapping to the closely related rerference
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
+    nanopore_reads.join(ch_fasta_fai).multiMap{
+        it ->
+            nanopore_reads: [it[0], it[1]]
+            fasta: [it[0], it[2]]
+    }.set{
+        ch_input
+    }
 
     MAPPING_NANOPORE(
-        nanopore_reads,
-        PREPARE_REFERENCES.out.ch_flu_db_msh,
-        PREPARE_REFERENCES.out.ch_flu_db_fasta
+        ch_input.nanopore_reads,
+        ch_input.fasta
     )
     ch_versions.mix(MAPPING_NANOPORE.out.versions)
+    
 
+    /*
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        filter out secondary, supplementary, duplicates, and keep soft/hard clipped alignments
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
+    
+    MAPPING_NANOPORE.out.bam_bai.join(ch_fasta_fai).multiMap{
+        it ->
+            bam_bai: [it[0], it[1], it[2]]
+            fasta_fai: [it[0], it[3], it[4]]
+    }.set{
+        ch_input
+    }
+    PREPROCESS_BAM(ch_input.bam_bai, ch_input.fasta_fai)
+    ch_versions.mix(PREPROCESS_BAM.out.versions)
+    ch_screen.join(PREPROCESS_BAM.out.coverage).multiMap {
+        it ->
+            screen: [it[0], it[1]]
+            coverage: [it[0], it[2]]
+    }.set{ 
+        ch_input 
+    }
+    MAPPING_SUMMARY(ch_input.screen, ch_input.coverage)
+    ch_versions.mix(MAPPING_SUMMARY.out.versions)
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         variant calling
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
+    PREPROCESS_BAM.out.bam_bai.join(ch_fasta_fai).multiMap{
+            it ->
+                    bam_bai: [it[0], it[1], it[2]]
+                    fasta_fai: [it[0], it[3], it[4]]
+            }.set { ch_input }
 
-    // mask low depth region of the fasta reference
-    maskfasta(
-        MAPPING_NANOPORE.out.bam_bai,
-        MAPPING_NANOPORE.out.fasta
-    )
-    fasta_fai = maskfasta.out.fasta_fai
-    ch_versions.mix(maskfasta.out.versions)
+    
+    VARIANTS_NANOPORE( ch_input.bam_bai, ch_input.fasta_fai)
 
-    MAPPING_NANOPORE.out.bam_bai.join(maskfasta.out.fasta_fai).multiMap {
-        it ->
-            bam_bai: [it[0], it[1], it[2]]
-            fasta_fai: [it[0], it[3], it[4]]
-    }
-    .set{
-        ch_input
-    }
-    variants_clair3(
-        ch_input.bam_bai,
-        ch_input.fasta_fai,
-        PREPARE_REFERENCES.out.ch_clair3_variant_model
-    )
-   // vcf_tbi = variants_clair3.out.vcf_tbi
+  
 
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     consensus generrating
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
-    //filter out emtpy vcf file
+    BAM2LOW_DEPTH_BED(PREPROCESS_BAM.out.bam_bai)
+    ch_versions.mix(BAM2LOW_DEPTH_BED.out.versions)
+    
+    VARIANTS_NANOPORE.out.vcf.join(ch_fasta_fai)
+        .join(BAM2LOW_DEPTH_BED.out.bed)
+        .multiMap{
+            it ->
+                vcf: [it[0], it[1]]
+                fasta: [it[0], it[2]]
+                mask: [it[0], it[4]]
+        }.set{
+            ch_input
+        }
 
-   
-    variants_clair3.out.vcf.join(variants_clair3.out.fasta_fai).multiMap{
-        it ->
-            vcf: [it[0], it[1]]
-            fasta: [it[0], it[2]]
-    }.set{
-        ch_input
-    }
     //ch_input.vcf.view()
-    consensus(ch_input.vcf, ch_input.fasta)
-    ch_versions.mix(consensus.out.versions)
+    CONSENSUS(ch_input.vcf, ch_input.fasta, ch_input.mask)
+    ch_versions.mix(CONSENSUS.out.versions)
 
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -211,10 +263,10 @@ workflow NANOPORE {
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
      /* ########## typing contigs ########## */
-    classifier_blast(consensus.out.fasta, PREPARE_REFERENCES.out.ch_typing_db)
-    ch_versions.mix(classifier_blast.out.versions)
+    CLASSIFIER_BLAST(CONSENSUS.out.fasta, PREPARE_REFERENCES.out.ch_typing_db)
+    ch_versions.mix(CLASSIFIER_BLAST.out.versions)
 
-    consensus.out.fasta.join(classifier_blast.out.tsv).multiMap{
+    CONSENSUS.out.fasta.join(CLASSIFIER_BLAST.out.tsv).multiMap{
         it ->
             consensus: [it[0], it[1]]
             tsv: [it[0], it[2]]
@@ -222,8 +274,8 @@ workflow NANOPORE {
         ch_input
     }
 
-    classifier_nextclade(ch_input.consensus, ch_input.tsv)
-    ch_versions.mix(classifier_nextclade.out.versions)
+    CLASSIFIER_NEXTCLADE(ch_input.consensus, ch_input.tsv)
+    ch_versions.mix(CLASSIFIER_NEXTCLADE.out.versions)
 
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -232,10 +284,10 @@ workflow NANOPORE {
     */
     ch_report = QC_NANOPORE.out.input_stats.ifEmpty([])
         .join(QC_NANOPORE.out.qc_stats.ifEmpty([]))
-        .join(consensus.out.stats.ifEmpty([]))
-        .join(classifier_blast.out.tsv.ifEmpty([]))
-        .join(MAPPING_NANOPORE.out.mapping_summary.ifEmpty([]))
-        .join(classifier_nextclade.out.tsv.groupTuple())//.view()
+        .join(CONSENSUS.out.stats.ifEmpty([]))
+        .join(CLASSIFIER_BLAST.out.tsv.ifEmpty([]))
+        .join(MAPPING_SUMMARY.out.mapping_summary.ifEmpty([]))
+        .join(CLASSIFIER_NEXTCLADE.out.tsv.groupTuple())//.view()
         .multiMap{
             it ->
                 raw_stats: [it[0], it[1]]

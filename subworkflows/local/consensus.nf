@@ -20,7 +20,7 @@ include {
 
 include {
     BCFTOOLS_CONSENSUS;
-} from '../../modules/nf-core/bcftools/consensus'
+} from '../../modules/local/bcftools/consensus'
 
 include {
     SEQKIT_FX2TAB as SEQKIT_FX2TAB_CONSENSUS;
@@ -34,12 +34,17 @@ include {
 include {
     REHEADER;
 } from '../../modules/local/misc'
-include { SEQKIT_TAB2FX } from '../../modules/nf-core/seqkit/tab2fx/main'    
-workflow consensus {   
+
+include {
+    SEQKIT_TAB2FX 
+} from '../../modules/nf-core/seqkit/tab2fx/main'   
+
+workflow CONSENSUS {   
 
     take:
         vcf
         fasta //[meta, fasta]
+        mask_bed_file
     main:
         ch_versions = Channel.empty()
         
@@ -123,7 +128,18 @@ workflow consensus {
         ch_versions.mix(BCFTOOLS_SETGT.out.versions)
 
         TABIX_TABIX_SETGT(BCFTOOLS_SETGT.out.vcf)
-        BCFTOOLS_CONSENSUS(BCFTOOLS_SETGT.out.vcf.join(TABIX_TABIX_SETGT.out.tbi).join(fasta))
+        BCFTOOLS_SETGT.out.vcf
+            .join(TABIX_TABIX_SETGT.out.tbi)
+            .join(fasta)
+            .join(mask_bed_file)
+            .multiMap{
+                it ->
+                    vcf_tbi_fasta: [it[0], it[1], it[2], it[3]]
+                    mask_bed: [it[0], it[4]]
+            }.set{
+                ch_input
+            }
+        BCFTOOLS_CONSENSUS(ch_input.vcf_tbi_fasta, ch_input.mask_bed)
         ch_versions.mix(BCFTOOLS_CONSENSUS.out.versions)
         
         SEQKIT_FX2TAB_REFORMAT(BCFTOOLS_CONSENSUS.out.fasta)

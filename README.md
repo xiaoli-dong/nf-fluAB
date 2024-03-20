@@ -39,7 +39,7 @@ By default, the pipeline supports both short and long reads:
     - Remove host genomes ([Hostile](https://github.com/bede/hostile))
 - Consensus/Assembly
   - Short read assembly ([mash](https://github.com/marbl/Mash)|[bwa](https://github.com/lh3/bwa)|[samtools](https://github.com/samtools/samtools)|[freebayes](https://github.com/freebayes/freebayes)|[bcftools](https://github.com/samtools/bcftools)|[bioawk](https://github.com/lh3/bioawk))
-  - Long read assembly ([mash](https://github.com/marbl/Mash)|[Minimap2](https://github.com/lh3/minimap2)|[clair3](https://github.com/HKU-BAL/Clair3)|[bcf](https://samtools.github.io/bcftools/))
+  - Long read assembly ([mash](https://github.com/marbl/Mash)|[Minimap2](https://github.com/lh3/minimap2)|[clair3](https://github.com/HKU-BAL/Clair3)|[bcftools](https://samtools.github.io/bcftools/))
 
 - Classification
   - Flu typing: [Blastn](https://blast.ncbi.nlm.nih.gov/doc/blast-help/downloadblastdata.html) search against flu typing database

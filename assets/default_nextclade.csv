@@ -1,0 +1,9 @@
+seqName;clade;qc.overallScore;qc.overallStatus;totalSubstitutions;totalDeletions;totalInsertions;totalFrameShifts;totalAminoacidSubstitutions;totalAminoacidDeletions;totalAmino
+acidInsertions;totalMissing;totalNonACGTNs;totalPcrPrimerChanges;substitutions;deletions;insertions;privateNucMutations.reversionSubstitutions;privateNucMutations.labeledSubsti
+tutions;privateNucMutations.unlabeledSubstitutions;privateNucMutations.totalReversionSubstitutions;privateNucMutations.totalLabeledSubstitutions;privateNucMutations.totalUnlabe
+ledSubstitutions;privateNucMutations.totalPrivateSubstitutions;frameShifts;aaSubstitutions;aaDeletions;aaInsertions;missing;nonACGTNs;pcrPrimerChanges;alignmentScore;alignmentS
+tart;alignmentEnd;qc.missingData.missingDataThreshold;qc.missingData.score;qc.missingData.status;qc.missingData.totalMissing;qc.mixedSites.mixedSitesThreshold;qc.mixedSites.sco
+re;qc.mixedSites.status;qc.mixedSites.totalMixedSites;qc.privateMutations.cutoff;qc.privateMutations.excess;qc.privateMutations.score;qc.privateMutations.status;qc.privateMutat
+ions.total;qc.snpClusters.clusteredSNPs;qc.snpClusters.score;qc.snpClusters.status;qc.snpClusters.totalSNPs;qc.frameShifts.frameShifts;qc.frameShifts.totalFrameShifts;qc.frameS
+hifts.frameShiftsIgnored;qc.frameShifts.totalFrameShiftsIgnored;qc.frameShifts.score;qc.frameShifts.status;qc.stopCodons.stopCodons;qc.stopCodons.totalStopCodons;qc.stopCodons.
+score;qc.stopCodons.status;isReverseComplement;errors

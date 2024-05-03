@@ -5,14 +5,20 @@ process BCFTOOLS_NORM {
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/bcftools%3A1.20--h8b25389_0':
-        'biocontainers/bcftools:1.18--h8b25389_0' }"
+        'biocontainers/bcftools:1.20--h8b25389_0' }"
 
     input:
     tuple val(meta), path(vcf), path(tbi)
     tuple val(meta2), path(fasta)
 
     output:
-    tuple val(meta), path("*.{vcf,vcf.gz,bcf,bcf.gz}")  , emit: vcf
+    //tuple val(meta), path("${prefix}.{vcf,vcf.gz,bcf,bcf.gz}"), emit: vcf
+    //tuple val(meta), path("${prefix}.{vcf,vcf.gz,bcf,bcf.gz}.tbi"), optional: true, emit: tbi
+    tuple val(meta), path("${prefix}.${extension}"), emit: vcf
+    tuple val(meta), path("${prefix}.${extension}.tbi"), optional: true, emit: tbi
+    tuple val(meta), path("${prefix}.${extension}.csi"), optional: true, emit: csi
+    //tuple val(meta), path("*.csi"), optional:true, emit: csi
+    
     path "versions.yml"                 , emit: versions
 
     when:
@@ -20,8 +26,8 @@ process BCFTOOLS_NORM {
 
     script:
     def args = task.ext.args ?: '--output-type z'
-    def prefix = task.ext.prefix ?: "${meta.id}"
-    def extension = args.contains("--output-type b") || args.contains("-Ob") ? "bcf.gz" :
+    prefix = task.ext.prefix ?: "${meta.id}"
+    extension = args.contains("--output-type b") || args.contains("-Ob") ? "bcf.gz" :
                     args.contains("--output-type u") || args.contains("-Ou") ? "bcf" :
                     args.contains("--output-type z") || args.contains("-Oz") ? "vcf.gz" :
                     args.contains("--output-type v") || args.contains("-Ov") ? "vcf" :

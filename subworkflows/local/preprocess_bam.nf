@@ -4,7 +4,16 @@ include {
 } from '../../modules/nf-core/samtools/view/main'
 
 include {
-    SAMCLIP;  
+    RENAMECHROM as RENAMECHROM_PERBASE;
+    RENAMECHROM as RENAMECHROM_PERBASE_RM_SEC_SUP;
+    RENAMECHROM as RENAMECHROM_PERBASE_SAMCLIP;
+    RENAMECHROM as RENAMECHROM_PERBASE_RMDUP;
+    SAMCLIP; 
+    PLOT_DEPTH as PLOT_DEPTH_INPUT;
+    PLOT_DEPTH as PLOT_DEPTH_RM_SEC_SUP;
+    PLOT_DEPTH as PLOT_DEPTH_SAMCLIP;
+    PLOT_DEPTH as PLOT_DEPTH_RMDUP;
+
 } from '../../modules/local/misc'
 
 include {
@@ -26,14 +35,41 @@ include {
     BAM_MARKDUPLICATES_PICARD as PICARD_MARKDUPLICATES;
 } from '../nf-core/bam_markduplicates_picard'
 
-workflow PREPROCESS_BAM {   
-    take:
-        bam_bai
-        fasta_fai //[meta, fasta, fai] reference used to produce bam_bai
+include {
+    BEDTOOLS_GENOMECOV as BEDTOOLS_GENOMECOV_PERBASE;
+    BEDTOOLS_GENOMECOV as BEDTOOLS_GENOMECOV_PERBASE_RM_SEC_SUP;
+    BEDTOOLS_GENOMECOV as BEDTOOLS_GENOMECOV_PERBASE_SAMCLIP;
+    BEDTOOLS_GENOMECOV as BEDTOOLS_GENOMECOV_PERBASE_RMDUP;
+} from '../../modules/nf-core/bedtools/genomecov/main.nf'
 
-    main:
-        ch_versions = Channel.empty()
-        //referene: https://wiki.bits.vib.be/index.php/Call_variants_with_samtools_1.0
+
+workflow PREPROCESS_BAM {   
+        take:
+            bam_bai
+            fasta_fai //[meta, fasta, fai] reference used to produce bam_bai
+            ref_header //[meta, txt] reference header
+
+        main:
+            ch_versions = Channel.empty()
+            //ref_header.view()
+            //get perbase depth file and plot it
+            ch_input = bam_bai.map{ it -> [it[0], it[1], 1] } //[meta, bam, scale]
+            BEDTOOLS_GENOMECOV_PERBASE(ch_input, [], "bed")
+
+            BEDTOOLS_GENOMECOV_PERBASE.out.genomecov
+                .join(ref_header)
+                .multiMap{ 
+                    it -> 
+                        bed: [it[0], it[1]] //[meta, bed]
+                        header: [it[0], it[2]] //[meta, header] 
+                }.set{ ch_input }
+            //ch_input.header.view()
+            RENAMECHROM_PERBASE(ch_input.bed, ch_input.header)
+
+            PLOT_DEPTH_INPUT(RENAMECHROM_PERBASE.out.tsv)
+            //PLOT_DEPTH_INPUT(BEDTOOLS_GENOMECOV_PERBASE.out.genomecov)
+            ch_versions = ch_versions.mix(PLOT_DEPTH_INPUT.out.versions.first())
+
 
         /*
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -56,6 +92,22 @@ workflow PREPROCESS_BAM {
         
         SAMTOOLS_COVERAGE_RM_SEC_SUP(ch_bam_bai)
         coverage_rm_sec_sup = SAMTOOLS_COVERAGE_RM_SEC_SUP.out.coverage
+
+        ch_input = ch_bam_bai.map{ it -> [it[0], it[1], 1] } //[meta, bam, scale]
+        BEDTOOLS_GENOMECOV_PERBASE_RM_SEC_SUP(ch_input, [], "bed")
+
+        BEDTOOLS_GENOMECOV_PERBASE_RM_SEC_SUP.out.genomecov
+                .join(ref_header)
+                .multiMap{ 
+                    it -> 
+                        bed: [it[0], it[1]] //[meta, bed]
+                        header: [it[0], it[2]] //[meta, header] 
+                }.set{ ch_input }
+            //ch_input.header.view()
+        RENAMECHROM_PERBASE_RM_SEC_SUP(ch_input.bed, ch_input.header)
+
+        PLOT_DEPTH_RM_SEC_SUP(RENAMECHROM_PERBASE_RM_SEC_SUP.out.tsv)
+        
         
         /*
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -104,6 +156,23 @@ workflow PREPROCESS_BAM {
             ch_bam_bai =  SAMTOOLS_SORT_SAMCLIP.out.bam.join(SAMTOOLS_INDEX_SAMCLIP.out.bai)
             SAMTOOLS_COVERAGE_SAMCLIP(ch_bam_bai)
             coverage_SAMCLIP = SAMTOOLS_COVERAGE_SAMCLIP.out.coverage
+
+            ch_input = ch_bam_bai.map{ it -> [it[0], it[1], 1] } //[meta, bam, scale]
+            BEDTOOLS_GENOMECOV_PERBASE_SAMCLIP(ch_input, [], "bed")
+            //PLOT_DEPTH_SAMCLIP(BEDTOOLS_GENOMECOV_PERBASE_SAMCLIP.out.genomecov)
+
+            BEDTOOLS_GENOMECOV_PERBASE_SAMCLIP.out.genomecov
+                .join(ref_header)
+                .multiMap{ 
+                    it -> 
+                        bed: [it[0], it[1]] //[meta, bed]
+                        header: [it[0], it[2]] //[meta, header] 
+                }.set{ ch_input }
+            //ch_input.header.view()
+            RENAMECHROM_PERBASE_SAMCLIP(ch_input.bed, ch_input.header)
+
+            PLOT_DEPTH_SAMCLIP(RENAMECHROM_PERBASE_SAMCLIP.out.tsv)
+        
         }
 
          /*
@@ -124,6 +193,23 @@ workflow PREPROCESS_BAM {
         
         SAMTOOLS_COVERAGE_RMDUP(ch_bam_bai)
         coverage_rmdup = SAMTOOLS_COVERAGE_RMDUP.out.coverage
+
+        ch_input = ch_bam_bai.map{ it -> [it[0], it[1], 1] } //[meta, bam, scale]
+        BEDTOOLS_GENOMECOV_PERBASE_RMDUP(ch_input, [], "bed")
+
+        //PLOT_DEPTH_RMDUP(BEDTOOLS_GENOMECOV_PERBASE_RMDUP.out.genomecov)
+
+        BEDTOOLS_GENOMECOV_PERBASE_RMDUP.out.genomecov
+                .join(ref_header)
+                .multiMap{ 
+                    it -> 
+                        bed: [it[0], it[1]] //[meta, bed]
+                        header: [it[0], it[2]] //[meta, header] 
+                }.set{ ch_input }
+            //ch_input.header.view()
+        RENAMECHROM_PERBASE_RMDUP(ch_input.bed, ch_input.header)
+
+        PLOT_DEPTH_RMDUP(RENAMECHROM_PERBASE_RMDUP.out.tsv)
         
         
     emit:

@@ -21,15 +21,18 @@ process NEXTCLADE_RUN {
     tuple val(meta), path("${prefix}.ndjson")        , optional:true, emit: ndjson
     tuple val(meta), path("${prefix}.aligned.fasta") , optional:true, emit: fasta_aligned
     tuple val(meta), path("*.translation.fasta")     , optional:true, emit: fasta_translation
+    tuple val(meta), path("${prefix}.dbname.txt"), emit: dbname
+
     path "versions.yml"                              , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
-
+   
     script:
     def args = task.ext.args ?: ''
     //prefix = task.ext.prefix ?: "${meta.id}"
     prefix = task.ext.prefix ?: "${meta.seqid}"
+    dbname = dataset.getName()
     """
     nextclade \\
         run \\
@@ -39,6 +42,8 @@ process NEXTCLADE_RUN {
         --output-all ./ \\
         --output-basename ${prefix} \\
         $fasta
+    echo -e "seqName\tclade_database" > ${prefix}.dbname.txt
+    echo -e "${meta.seqid}\t${dbname}" >> ${prefix}.dbname.txt
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

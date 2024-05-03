@@ -83,6 +83,8 @@ process FILTERMASH {
     END_VERSIONS
     """
 }
+
+
 process SAMCLIP {
     tag "$meta.id"
     label 'process_single'
@@ -120,4 +122,70 @@ process SAMCLIP {
     """
 }
 
+process RENAMECHROM {
+    tag "$meta.id"
+    label 'process_single'
 
+    conda "conda-forge::python=3.9.5"
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/python:3.9--1' :
+        'quay.io/biocontainers/python:3.9--1' }"
+
+    input:
+    tuple val(meta), path(bed)
+    tuple val(meta), path(header)
+    
+    
+    output:
+    tuple val(meta), path("*.tsv"), emit: tsv
+    path "versions.yml"           , emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def args = task.ext.args ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    
+    """
+    rename_bed_chrom.py -b ${bed} -i ${header} -o ${prefix}.tsv
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        python: \$(python --version | sed 's/Python //g')
+    END_VERSIONS
+    """
+}
+process PLOT_DEPTH {
+     tag "$meta.id"
+    label 'process_single'
+
+
+    conda "conda-forge::r-base=4.0.3 conda-forge::r-optparse=1.6.6 conda-forge::r-ggplot2=3.3.3 "
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/mulled-v2-ad9dd5f398966bf899ae05f8e7c54d0fb10cdfa7:05678da05b8e5a7a5130e90a9f9a6c585b965afa-0' :
+        'quay.io/biocontainers/mulled-v2-ad9dd5f398966bf899ae05f8e7c54d0fb10cdfa7:05678da05b8e5a7a5130e90a9f9a6c585b965afa-0' }"
+
+    input:
+    tuple val(meta), path(genomecov)
+
+    output:
+    tuple val(meta), path('*.pdf'), emit: pdf
+    //tuple val(meta), path('*.jpeg'), emit: png
+    path "versions.yml"           , emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+
+    """
+    plot_depth.R $genomecov $prefix 
+    
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        r-base: \$(echo \$(R --version 2>&1) | sed 's/^.*R version //; s/ .*\$//')
+    END_VERSIONS
+    """
+}

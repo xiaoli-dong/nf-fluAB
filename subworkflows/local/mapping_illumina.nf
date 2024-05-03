@@ -67,6 +67,7 @@ workflow MAPPING_ILLUMINA {
         
         SAMTOOLS_COVERAGE_MAPPING(bam_bai)
         ch_versions = ch_versions.mix(SAMTOOLS_COVERAGE_MAPPING.out.versions.first())
+
         
     emit:
         bam_bai 

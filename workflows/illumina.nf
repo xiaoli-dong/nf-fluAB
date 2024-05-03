@@ -56,7 +56,7 @@ include {
 } from '../subworkflows/local/qc_illumina'
 
 include {
-    GET_REF_BY_MASH
+    GETREF_BY_MASH
 } from '../subworkflows/local/get_references'
 
 include {
@@ -76,9 +76,6 @@ include {
     CLASSIFIER_NEXTCLADE;
 } from '../subworkflows/local/classifier'
 
-include {
-    LOW_DEPTH_BED_FROM_BAM;
-} from '../subworkflows/local/mask'
 
 include {
     VARIANTS_ILLUMINA;
@@ -101,12 +98,17 @@ include {
     CSVTK_CONCAT as CONCAT_CONSENSU_REPORT;
 } from '../modules/nf-core/csvtk/concat/main'
 
+include {
+    BEDTOOLS_GENOMECOV as BEDTOOLS_GENOMECOV_LOWDEPTH;
+} from '../modules/nf-core/bedtools/genomecov/main.nf'
+
 //
 // MODULE: developed locally 
 //
 include {
     CONSENSUS_REPORT
 } from '../modules/local/consensus/report/main'
+
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -160,14 +162,15 @@ workflow ILLUMINA {
         Identify the closely related rerference through mash
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
-    GET_REF_BY_MASH(
+    GETREF_BY_MASH(
         illumina_reads, 
         PREPARE_REFERENCES.out.ch_flu_db_msh, 
         PREPARE_REFERENCES.out.ch_flu_db_fasta
     )
-    ch_versions.mix(GET_REF_BY_MASH.out.versions)
-    ch_screen = GET_REF_BY_MASH.out.screen
-    ch_fasta_fai = GET_REF_BY_MASH.out.fasta_fai
+    ch_versions.mix(GETREF_BY_MASH.out.versions)
+    ch_screen = GETREF_BY_MASH.out.screen
+    ch_fasta_fai = GETREF_BY_MASH.out.fasta_fai
+    ch_header = GETREF_BY_MASH.out.header
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         Map reads to the identified references
@@ -193,14 +196,15 @@ workflow ILLUMINA {
         filter out secondary, supplementary, duplicates, and soft/hard clipped reads
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
-    MAPPING_ILLUMINA.out.bam_bai.join(ch_fasta_fai).multiMap{
+    MAPPING_ILLUMINA.out.bam_bai.join(ch_fasta_fai).join(ch_header).multiMap{
         it ->
             bam_bai: [it[0], it[1], it[2]]
             fasta_fai: [it[0], it[3], it[4]]
+            header: [it[0], it[5]]
     }.set{
         ch_input
     }
-    PREPROCESS_BAM(ch_input.bam_bai, ch_input.fasta_fai)
+    PREPROCESS_BAM(ch_input.bam_bai, ch_input.fasta_fai, ch_input.header)
     ch_versions.mix(PREPROCESS_BAM.out.versions)
    
     /*
@@ -225,11 +229,18 @@ workflow ILLUMINA {
     */
 
     //produce bed file for the low depth region
-    LOW_DEPTH_BED_FROM_BAM(PREPROCESS_BAM.out.bam_bai)
-    ch_versions.mix(LOW_DEPTH_BED_FROM_BAM.out.versions)
+    ch_input = PREPROCESS_BAM.out.bam_bai
+        .map{
+            it -> [it[0], it[1], 1] //[meta, bam, scale]
+        }
+
+        //bed file of the low depth regions < params.mindepth
+    BEDTOOLS_GENOMECOV_LOWDEPTH(ch_input, [], "bed")
+    
+    
 
     VARIANTS_ILLUMINA.out.vcf_tbi.join(ch_fasta_fai)
-        .join(LOW_DEPTH_BED_FROM_BAM.out.bed)
+        .join(BEDTOOLS_GENOMECOV_LOWDEPTH.out.genomecov)
         .multiMap{
             it ->
                 vcf_tbi: [it[0], it[1], it[2]]
@@ -267,26 +278,33 @@ workflow ILLUMINA {
     producce consensus report
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
+    ch_nextclade_dbname = CLASSIFIER_NEXTCLADE.out.dbname.groupTuple().view()
+    //CLASSIFIER_NEXTCLADE.out.tsv.view()
     ch_nextclade_tsv = CLASSIFIER_NEXTCLADE.out.tsv.map{
         meta, tsv ->
             meta.remove("seqid")
             [meta, tsv]
-    }.groupTuple().view()
-
+    }.groupTuple()//.view() 
+    //CLASSIFIER_NEXTCLADE.out.dbname.view()
     CONSENSUS.out.stats
         .join(PREPROCESS_BAM.out.coverage_rmdup)
         .join(CLASSIFIER_BLAST.out.tsv)
         .join(ch_nextclade_tsv)
+        .join(ch_nextclade_dbname)
+        .join(ch_screen)
         .multiMap{
             it -> 
                 stats: [it[0], it[1]]
                 cov: [it[0], it[2]]
                 typing: [it[0], it[3]]
                 nextclade_tsv: [it[0], it[4].join(',')]
+                nextclade_dbname: [it[0], it[5].join(',')]
+                screen: [it[0], it[6]]
         }.set{
             ch_input
         }
-    CONSENSUS_REPORT(ch_input.stats, ch_input.cov, ch_input.typing, ch_input.nextclade_tsv)
+    ch_input.nextclade_dbname.view()
+    CONSENSUS_REPORT(ch_input.stats, ch_input.cov, ch_input.typing, ch_input.nextclade_tsv, ch_input.nextclade_dbname, ch_input.screen, Channel.of(params.flu_db_ver) )
     CONCAT_CONSENSU_REPORT(
         CONSENSUS_REPORT.out.csv.map { cfg, stats -> stats }.collect()
             .map{

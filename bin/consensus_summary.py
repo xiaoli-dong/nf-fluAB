@@ -19,9 +19,10 @@ def parse_consensus_stats(stats_file):
     230721_S_I_314_87-bwa_bcftools-segment_1-ref_accession_MN560975 2280    2255    25      0
     """
     stats_dict = {}
+    seqid2ref_dict = {}
 
     if stats_file is None:
-        return stats_dict
+        return stats_dict, seqid2ref_dict
 
     if os.path.exists(stats_file) == False or os.path.isfile(stats_file) == False:
         print(f"\nERROR: coverage file {stats_file} does not exist.\n", file=sys.stderr)
@@ -29,16 +30,21 @@ def parse_consensus_stats(stats_file):
     if os.path.getsize(stats_file) == 0:
         print(f"\nWarning: coverage file {stats_file} is empty.\n", file=sys.stderr)
         # exit(1)
-        return stats_dict
+        return stats_dict, seqid2ref_dict
 
     with open(stats_file, "r", encoding="utf8") as fx2tab_file:
         reader = csv.DictReader(fx2tab_file, delimiter="\t")
         for row in reader:
             seqid = row.pop("#id")
+            refid = seqid.split('-ref_accession_')[1]
             stats_dict[seqid] = {}
-            stats_dict[seqid]['length'] = row["length"]
+            stats_dict[seqid]['gene_length'] = row["length"]
+            stats_dict[seqid]['total_ATCG'] = row["ATCG"]
+            stats_dict[seqid]['total_N'] = row["N"]
             stats_dict[seqid]['pct_Ns'] = round(100 * int(row["N"]) / int(row["length"]), 2)
-            stats_dict[seqid]['pct_completeness'] = 100 - stats_dict[seqid]['pct_Ns']
+            #stats_dict[seqid]['pct_completeness'] = 100 - stats_dict[seqid]['pct_Ns']
+            stats_dict[seqid]['pct_completeness'] = round(100*(1 - int(row["N"]) / int(row["length"])), 2)
+            seqid2ref_dict[seqid] = refid
 
     sorted_stats_dict = {i: stats_dict[i] for i in sorted(stats_dict.keys())}        
 
@@ -46,7 +52,7 @@ def parse_consensus_stats(stats_file):
     for key, value_dict in sorted_stats_dict.items():
         print("key*********************" + key, file=sys.stderr)
         
-    return sorted_stats_dict
+    return sorted_stats_dict, seqid2ref_dict
 
 
 def parse_consensus_coverage_file(coverage_file):
@@ -76,7 +82,10 @@ def parse_consensus_coverage_file(coverage_file):
                 cov_dict[id] = {}
 
                 for col in cols_to_keep:
-                    cov_dict[id][col] = row[col]
+                    if col == 'numreads':
+                        cov_dict[id]['numreads_mapped'] = row[col]
+                    else:
+                        cov_dict[id][col] = row[col]
 
     sorted_cov_dict = {i: cov_dict[i] for i in sorted(cov_dict.keys())}
     #print(sorted_cov_dict)
@@ -108,12 +117,17 @@ def parse_typing_file(blast_tabular_output):
     with open(blast_tabular_output, "r", encoding="utf8") as csvfile:
             reader = csv.DictReader(csvfile, delimiter="\t")
             cols_to_keep = ["sseqid", "pident", "mismatch", "gapopen", "evalue", "qcovs"]
+            
             for row in reader:
                 #print(type(row))
                 id = row.pop("qseqid")
                 typing_dict[id] = {}
+                #sseqid example: CY163681~~7~~A, CY163682~~6~~N2
                 for col in cols_to_keep:
-                    typing_dict[id][col] = row[col]
+                    if col == "sseqid":
+                        typing_dict[id]['type'] = row[col].split('~~')[2]
+
+                    typing_dict[id]['typing_' + col] = row[col]
 
     sorted_typing_dict = {i: typing_dict[i] for i in sorted(typing_dict.keys())}
     #print(sorted_typing_dict)
@@ -156,6 +170,86 @@ def parse_nextclade_files(nextclade_tsv_outputs, sep):
     #print(sorted_nextclade_dict)
     return sorted_nextclade_dict
 
+def parse_nextclade_dbnames(nextclade_dbnames, sep):
+    
+    """
+    parse nextclade tsv output file
+    
+    """
+    nextclade_dict = {}
+
+    if nextclade_dbnames is None:
+        return nextclade_dict
+
+    #print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+    #print(nextclade_tsv_outputs)
+    for dbname in nextclade_dbnames.split(sep=","):
+        if os.path.exists(dbname) == False or os.path.isfile(dbname) == False:
+            print(f"\nERROR: nextclade db file {dbname} does not exist.\n", file=sys.stderr)
+            exit(1)
+        if os.path.getsize(dbname) == 0:
+            print(f"\nWarning: nextclade db file {dbname} is empty.\n", file=sys.stderr)
+            # exit(1)
+            continue
+
+        # print(nextclade_tsv_output)
+
+        with open(dbname, "r", encoding="utf8") as nextclade_db_file:
+            reader = csv.DictReader(nextclade_db_file, delimiter=sep)
+            for row in reader:
+                
+                id = row.pop("seqName")
+                nextclade_dict[id] = {}
+                nextclade_dict[id]["clade_database"] = row["clade_database"]
+
+    sorted_nextclade_dict = {i: nextclade_dict[i] for i in sorted(nextclade_dict.keys())}
+    
+    return sorted_nextclade_dict
+
+
+def parse_mashcreen_file(mashscreen_output, c_seqid2ref_dict, dbver):
+
+    """
+    parse mash screen ouput: 
+    identity        shared-hashes   median-multiplicity     p-value query-ID        query-comment
+    0.997519        635/669 5773    0       MH356668        Human|7|M|H1N1|Kenya|A/Kenya/035/2018|A|na|na|na
+    0.987753        772/1000        16      0       KY697327        Human|5|NP|H3N2|USA|A/Gainesville/13/2016|na|na|na|na
+    0.985318        733/1000        900     0       MK168420        Human|6|NA|H1N1|USA|A/USA/SC5820/2017|N1|na|na|na
+    0.985061        729/1000        261     0       MK381163        Human|1|PB1|None|South_Korea|A/South_Korea/7628/2018|na|na|na|na
+    """
+
+    contig2mash_dict = {}
+
+    mashscreen_dict = {}
+
+    if mashscreen_output is None:
+        return contig2mash_dict
+
+    if os.path.exists(mashscreen_output) == False or os.path.isfile(mashscreen_output) == False:
+        print(f"\nERROR: coverage file {mashscreen_output} does not exist.\n", file=sys.stderr)
+        exit(1)
+    if os.path.getsize(mashscreen_output) == 0:
+        print(f"\nWarning: coverage file {mashscreen_output} is empty.\n", file=sys.stderr)
+        # exit(1)
+        return contig2mash_dict
+
+    # print(mashscreen_output)
+    with open(mashscreen_output, "r", encoding="utf8") as csvfile:
+            reader = csv.DictReader(csvfile, delimiter="\t")
+            cols_to_keep = ["identity", "shared-hashes", "query-comment"]
+            for row in reader:
+                #print(type(row))
+                id = row.pop("query-ID")
+                mashscreen_dict[id] = {}
+                mashscreen_dict[id]['influenza_db_version'] = dbver
+                for col in cols_to_keep:
+                    mashscreen_dict[id]['ref_' + col] = row[col]
+    for seqid, refid in c_seqid2ref_dict.items():
+        contig2mash_dict[seqid] = mashscreen_dict[refid]
+
+    sorted_contig2mash_dict = {i: contig2mash_dict[i] for i in sorted(contig2mash_dict.keys())}
+    
+    return sorted_contig2mash_dict
 
 
 import collections.abc
@@ -215,11 +309,29 @@ def main():
         default=None,
         help=f"Path to nextclade produced tsv files\n",
     )
-
+    parser.add_argument(
+        "-d",
+        "--c-nextclade-dbnames",
+        default=None,
+        help=f"Path to files which contains clade database name\n",
+    )
+    parser.add_argument(
+        "-r",
+        "--c-mashscreen-file",
+        default=None,
+        help=f"Path to mash screen produced tsv files\n",
+    )
+    parser.add_argument(
+        "-v",
+        "--db-ver",
+        default=None,
+        help=f"flu database version\n",
+    )
+   
     
     args = parser.parse_args()
     
-    c_stats_dict = parse_consensus_stats(args.c_stats_file)
+    c_stats_dict,  c_seqid2ref_dict = parse_consensus_stats(args.c_stats_file)
     c_cov_dict = parse_consensus_coverage_file(args.c_coverage_file)
 
     for cid in c_stats_dict.keys():
@@ -231,15 +343,40 @@ def main():
 
     c_typing_dict = parse_typing_file(args.c_typing_file)
     c_nextclade_dict = parse_nextclade_files(args.c_nextclade_files, "\t")
+    c_nextclade_dbnames  = parse_nextclade_dbnames(args.c_nextclade_dbnames, "\t")
+    c2mash_dict  = parse_mashcreen_file(args.c_mashscreen_file, c_seqid2ref_dict, args.db_ver)
 
-    total_summary = dict_merge(c_stats_dict, c_typing_dict, c_nextclade_dict)
+    total_summary = dict_merge(c_stats_dict, c_typing_dict, c_nextclade_dict, c_nextclade_dbnames, c2mash_dict)
     jsonString = json.dumps(total_summary, indent=4)
     print(jsonString, file=sys.stderr)
     """ json_summary_file = open(f"{args.prefix}.json", "w")
     json_summary_file.write(jsonString)
     json_summary_file.close() """
     
-    field_names = ["clade", "length", "pct_Ns", "pct_completeness", "numreads", "covbases", "coverage", "meandepth", "sseqid", "pident", "mismatch", "gapopen", "evalue", "qcovs"]
+    field_names = [
+        "gene_length", 
+        "total_ATCG", 
+        "total_N", 
+        "pct_completeness", 
+        "pct_Ns",
+        "numreads_mapped", 
+        "covbases", 
+        "coverage", 
+        "meandepth", 
+        "clade", 
+        "clade_database", 
+        "type",
+        "influenza_db_version",
+        "typing_sseqid", 
+        "typing_pident", 
+        "typing_mismatch", 
+        "typing_gapopen", 
+        "typing_evalue", 
+        "typing_qcovs",
+        "ref_identity",
+        "ref_shared-hashes",
+        "ref_query-comment"
+    ]
     print("cid," + ",".join(field_names))
 
     for cid in total_summary.keys():

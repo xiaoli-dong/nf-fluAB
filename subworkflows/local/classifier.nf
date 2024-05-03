@@ -68,24 +68,6 @@ workflow CLASSIFIER_NEXTCLADE{
             }
         //ch_fasta.view()
         SEGMENT2DATASET(fasta, tsv)
-
-        //SEGMENT2DATASET.out.out_tsv.view()
-        //no header: seqid fasta_file  dataset(path to nextclade)
-       
-         /* SEGMENT2DATASET.out.out_tsv
-            .filter{meta, tsv -> tsv.size() > 0}
-            .map{meta, tsv -> tsv}
-            .splitCsv ( header:false, sep:'\t' )
-            .multiMap{
-                row ->
-                    sampleid = row[0].split("-")[0]
-                    meta = [id:sampleid, seqid:row[0]]
-                    fasta: [meta, file(row[1], checkIfExists: true)]
-                    dataset: file(row[2], checkIfExists: true)
-            }.set{
-                ch_input
-            }   */
-
         SEGMENT2DATASET.out.out_tsv.filter{meta, tsv -> tsv.size() > 0}
             .splitCsv ( header:false, sep:'\t' )
             .multiMap{
@@ -100,14 +82,16 @@ workflow CLASSIFIER_NEXTCLADE{
             }.set{
                 ch_input
             }  
-
+      
         NEXTCLADE_RUN(ch_input.fasta, ch_input.dataset)
+        
         ch_versions = ch_versions.mix(NEXTCLADE_RUN.out.versions.first())
         CONCAT_NEXTCLADE(NEXTCLADE_RUN.out.tsv.map { cfg, tsv -> tsv }.collect().map { files -> tuple([id: "nextclade"], files)}, in_format, out_format )
 
  
     emit:
         tsv = NEXTCLADE_RUN.out.tsv
+        dbname = NEXTCLADE_RUN.out.dbname
         summary = CONCAT_NEXTCLADE.out.csv
         versions = ch_versions
         

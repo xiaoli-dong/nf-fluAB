@@ -7,16 +7,12 @@ include {
 } from '../../modules/nf-core/samtools/index/main'
 
 include {
-    SAMTOOLS_COVERAGE as SAMTOOLS_COVERAGE_MAPPING;  
-} from '../../modules/nf-core/samtools/coverage/main'
-
-include {
     SAMTOOLS_SORT
 } from '../../modules/nf-core/samtools/sort/main'
 
-include {
-    FILTERMASH;
-} from '../../modules/local/misc'
+include {   
+    SAMTOOLS_COVERAGE as SAMTOOLS_COVERAGE_MAPPING;
+} from '../../modules/nf-core/samtools/coverage/main'
 
 workflow MAPPING_NANOPORE {   
 
@@ -54,6 +50,7 @@ workflow MAPPING_NANOPORE {
         
         SAMTOOLS_COVERAGE_MAPPING(bam_bai)
         ch_versions = ch_versions.mix(SAMTOOLS_COVERAGE_MAPPING.out.versions.first())
+        
         
     emit:
         bam_bai 

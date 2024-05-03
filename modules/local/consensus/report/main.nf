@@ -12,6 +12,9 @@ process CONSENSUS_REPORT {
     tuple val(meta), path(cov)
     tuple val(meta), path(typing)
     tuple val(meta), val(nextclade_csv) 
+    tuple val(meta), val(nextclade_dbnames) 
+    tuple val(meta), path(ref_screen)
+    val(dbver)
 
     output:
     tuple val(meta), path("*.consensus_summary.csv"), emit: csv
@@ -29,6 +32,9 @@ process CONSENSUS_REPORT {
         --c-coverage-file ${cov} \\
         --c-typing-file ${typing} \\
         --c-nextclade-files ${nextclade_csv} \\
+        --c-nextclade-dbnames ${nextclade_dbnames} \\
+        --c-mashscreen-file ${ref_screen} \\
+        --db-ver ${dbver} \\
         > ${prefix}.consensus_summary.csv
 
    

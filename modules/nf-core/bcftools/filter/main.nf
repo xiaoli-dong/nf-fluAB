@@ -12,6 +12,9 @@ process BCFTOOLS_FILTER {
 
     output:
     tuple val(meta), path("*.${extension}"), emit: vcf
+    tuple val(meta), path("${prefix}.{vcf,vcf.gz,bcf,bcf.gz}.tbi"), optional: true, emit: tbi
+    tuple val(meta), path("${prefix}.{vcf,vcf.gz,bcf,bcf.gz}.csi"), optional: true, emit: csi
+    
     path  "versions.yml"                   , emit: versions
 
     when:
@@ -19,7 +22,7 @@ process BCFTOOLS_FILTER {
 
     script:
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    prefix = task.ext.prefix ?: "${meta.id}"
 
     extension = args.contains("--output-type b") || args.contains("-Ob") ? "bcf.gz" :
                     args.contains("--output-type u") || args.contains("-Ou") ? "bcf" :

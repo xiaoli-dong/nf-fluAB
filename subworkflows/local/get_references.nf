@@ -11,10 +11,14 @@ include {
 } from '../../modules/local/seqkit/grep/main'
 
 include {
+    SEQKIT_HEADER
+} from '../../modules/local/seqkit/header' 
+
+include {
     SAMTOOLS_FAIDX
 } from '../../modules/nf-core/samtools/faidx/main'
 
-workflow GET_REF_BY_MASH {   
+workflow GETREF_BY_MASH {   
 
     take:
         illumina_reads
@@ -48,14 +52,19 @@ workflow GET_REF_BY_MASH {
 
         SEQKIT_GREP(seqids, fasta_db)
         ch_versions = ch_versions.mix(SEQKIT_GREP.out.versions.first())
+        fasta = SEQKIT_GREP.out.fasta
 
-        SAMTOOLS_FAIDX(SEQKIT_GREP.out.fasta)
-        fasta_fai = SEQKIT_GREP.out.fasta.join(SAMTOOLS_FAIDX.out.fai)
+        SAMTOOLS_FAIDX(fasta)
+        fasta_fai = fasta.join(SAMTOOLS_FAIDX.out.fai)
+        
+        SEQKIT_HEADER(fasta)
+        header = SEQKIT_HEADER.out.txt
         //SEQKIT_GREP.out.fasta.view()
         
     emit:
         screen = FILTERMASH.out.screen
         fasta_fai 
+        header
         versions = ch_versions
         
 }

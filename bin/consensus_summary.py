@@ -40,6 +40,7 @@ def parse_consensus_stats(stats_file):
             stats_dict[seqid] = {}
             stats_dict[seqid]['gene_length'] = row["length"]
             stats_dict[seqid]['total_ATCG'] = row["ATCG"]
+            stats_dict[seqid]['total_nonATCG'] = row["RYSWKMBDHV"]
             stats_dict[seqid]['total_N'] = row["N"]
             stats_dict[seqid]['pct_Ns'] = round(100 * int(row["N"]) / int(row["length"]), 2)
             #stats_dict[seqid]['pct_completeness'] = 100 - stats_dict[seqid]['pct_Ns']
@@ -342,8 +343,15 @@ def main():
 
 
     c_typing_dict = parse_typing_file(args.c_typing_file)
-    c_nextclade_dict = parse_nextclade_files(args.c_nextclade_files, "\t")
-    c_nextclade_dbnames  = parse_nextclade_dbnames(args.c_nextclade_dbnames, "\t")
+    if args.c_nextclade_files == 'null':
+        print("nextclade_file is null", file=sys.stderr)
+        c_nextclade_dict = parse_nextclade_files(None, "\t")
+    else:
+         c_nextclade_dict = parse_nextclade_files(args.c_nextclade_files, "\t")
+    if args.c_nextclade_dbnames == 'null':
+        c_nextclade_dbnames  = parse_nextclade_dbnames(None, "\t")
+    else:
+        c_nextclade_dbnames  = parse_nextclade_dbnames(args.c_nextclade_dbnames, "\t")
     c2mash_dict  = parse_mashcreen_file(args.c_mashscreen_file, c_seqid2ref_dict, args.db_ver)
 
     total_summary = dict_merge(c_stats_dict, c_typing_dict, c_nextclade_dict, c_nextclade_dbnames, c2mash_dict)
@@ -356,6 +364,7 @@ def main():
     field_names = [
         "gene_length", 
         "total_ATCG", 
+        "total_nonATCG",
         "total_N", 
         "pct_completeness", 
         "pct_Ns",
@@ -379,7 +388,7 @@ def main():
     ]
     print("cid," + ",".join(field_names))
 
-    for cid in total_summary.keys():
+    for cid in sorted(total_summary.keys()):
         values = [cid]
         for field in field_names:
             if field in total_summary[cid]:
@@ -388,7 +397,8 @@ def main():
                 else:
                     values.append(total_summary[cid][field])
             else:
-                values.append('N/A')
+                #values.append('N/A')
+                values.append('')
         print(",".join(values))
 
 if __name__ == "__main__":

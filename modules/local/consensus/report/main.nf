@@ -14,10 +14,10 @@ process CONSENSUS_REPORT {
     tuple val(meta), val(nextclade_csv) 
     tuple val(meta), val(nextclade_dbnames) 
     tuple val(meta), path(ref_screen)
-    val(dbver)
+    tuple val(meta), val(dbver)
 
     output:
-    tuple val(meta), path("*.consensus_summary.csv"), emit: csv
+    tuple val(meta), path("${prefix}.csv"), emit: csv
     path "versions.yml"           , emit: versions
 
     when:
@@ -25,7 +25,7 @@ process CONSENSUS_REPORT {
 
     script:
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    prefix = task.ext.prefix ?: "${meta.id}"
     """
     consensus_summary.py \\
         --c-stats-file ${stats} \\
@@ -35,7 +35,7 @@ process CONSENSUS_REPORT {
         --c-nextclade-dbnames ${nextclade_dbnames} \\
         --c-mashscreen-file ${ref_screen} \\
         --db-ver ${dbver} \\
-        > ${prefix}.consensus_summary.csv
+        > ${prefix}.csv
 
    
     cat <<-END_VERSIONS > versions.yml

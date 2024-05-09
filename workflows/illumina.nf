@@ -278,39 +278,50 @@ workflow ILLUMINA {
     producce consensus report
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
-    ch_nextclade_dbname = CLASSIFIER_NEXTCLADE.out.dbname.groupTuple().view()
-    //CLASSIFIER_NEXTCLADE.out.tsv.view()
+     
+    ch_nextclade_dbname = CLASSIFIER_NEXTCLADE.out.dbname.groupTuple()//.view()
     ch_nextclade_tsv = CLASSIFIER_NEXTCLADE.out.tsv.map{
         meta, tsv ->
             meta.remove("seqid")
             [meta, tsv]
-    }.groupTuple()//.view() 
-    //CLASSIFIER_NEXTCLADE.out.dbname.view()
-    CONSENSUS.out.stats
-        .join(PREPROCESS_BAM.out.coverage_rmdup)
-        .join(CLASSIFIER_BLAST.out.tsv)
-        .join(ch_nextclade_tsv)
-        .join(ch_nextclade_dbname)
-        .join(ch_screen)
+    }.groupTuple().ifEmpty([])//.view()
+
+    ch_screen
+        .join(CONSENSUS.out.stats.ifEmpty([]), remainder: true)
+        .join(PREPROCESS_BAM.out.coverage_rmdup.ifEmpty([]), remainder: true)
+        .join(CLASSIFIER_BLAST.out.tsv.ifEmpty([]), remainder: true)
+        .join(ch_nextclade_tsv.ifEmpty([]), remainder: true)
+        .join(ch_nextclade_dbname.ifEmpty([]), remainder: true)
         .multiMap{
             it -> 
-                stats: [it[0], it[1]]
-                cov: [it[0], it[2]]
-                typing: [it[0], it[3]]
-                nextclade_tsv: [it[0], it[4].join(',')]
-                nextclade_dbname: [it[0], it[5].join(',')]
-                screen: [it[0], it[6]]
+                screen: it[1] ? [it[0], it[1]] : [it[0], null]
+                stats: it[2] ? [it[0], it[2]] : [it[0], null]
+                cov: it[3] ? [it[0], it[3]] : [it[0], null]
+                typing: it[4] ? [it[0], it[4]] : [it[0], null]
+                nextclade_tsv: it[5] ? [it[0], it[5].join(',')] : [it[0], null]
+                nextclade_dbname: it[6] ? [it[0], it[6].join(',')]: [it[0], null]
+                dbver: [it[0], params.flu_db_ver]
         }.set{
             ch_input
         }
-    ch_input.nextclade_dbname.view()
-    CONSENSUS_REPORT(ch_input.stats, ch_input.cov, ch_input.typing, ch_input.nextclade_tsv, ch_input.nextclade_dbname, ch_input.screen, Channel.of(params.flu_db_ver) )
+    //ch_input.stats.view()
+    CONSENSUS_REPORT(
+        ch_input.stats, 
+        ch_input.cov, 
+        ch_input.typing, 
+        ch_input.nextclade_tsv, 
+        ch_input.nextclade_dbname, 
+        ch_input.screen,  
+        ch_input.dbver
+    ) 
+    
+    
     CONCAT_CONSENSU_REPORT(
-        CONSENSUS_REPORT.out.csv.map { cfg, stats -> stats }.collect()
+        CONSENSUS_REPORT.out.csv.map { cfg, stats -> stats }.collect().view()
             .map{
                 files ->
                     tuple(
-                        [id: "consensus_report"],
+                        [id: "${params.illumina_reads_mapping_tool}-${params.illumina_variant_caller}"],
                         files
                     )
         },

@@ -2,3 +2,4 @@ test/
 .DS_Store
 .vscode
 null*
+assets/clair3_models/

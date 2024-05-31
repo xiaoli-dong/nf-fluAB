@@ -11,16 +11,16 @@ include {
 } from '../../modules/local/minimap2/align/main'
 
 include {   
-    SAMTOOLS_INDEX      
-} from '../../modules/nf-core/samtools/index/main'
-
-include {   
     SAMTOOLS_COVERAGE as SAMTOOLS_COVERAGE_MAPPING;
 } from '../../modules/nf-core/samtools/coverage/main'
 
 include {  
+    SAMTOOLS_FIXMATE       
+} from '../../modules/local/samtools/fixmate/main'
+
+include {  
     SAMTOOLS_SORT       
-} from '../../modules/nf-core/samtools/sort/main'
+} from '../../modules/local/samtools/sort/main'
 
 workflow MAPPING_ILLUMINA {   
 
@@ -58,19 +58,24 @@ workflow MAPPING_ILLUMINA {
             ch_versions = ch_versions.mix(BWAMEM2_MEM.out.versions.first())
             sam = BWAMEM2_MEM.out.sam
         }
-       
-        SAMTOOLS_SORT (sam)
+        /*
+        Because BWA can sometimes leave unusual FLAG information on SAM records, 
+        it is helpful when working with many tools to first clean up read pairing 
+        information and flags:
+        */
+        SAMTOOLS_FIXMATE(sam)
+        ch_versions = ch_versions.mix(SAMTOOLS_FIXMATE.out.versions.first())
+
+        //sort from name order to coordinate order
+        SAMTOOLS_SORT (SAMTOOLS_FIXMATE.out.bam)
         ch_versions = ch_versions.mix(SAMTOOLS_SORT.out.versions.first())
-        SAMTOOLS_INDEX (SAMTOOLS_SORT.out.bam)
-        ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions.first())
-        bam_bai = SAMTOOLS_SORT.out.bam.join(SAMTOOLS_INDEX.out.bai)
         
-        SAMTOOLS_COVERAGE_MAPPING(bam_bai)
+        SAMTOOLS_COVERAGE_MAPPING(SAMTOOLS_SORT.out.bam_bai)
         ch_versions = ch_versions.mix(SAMTOOLS_COVERAGE_MAPPING.out.versions.first())
 
         
     emit:
-        bam_bai 
+        bam_bai = SAMTOOLS_SORT.out.bam_bai
         fasta
         coverage = SAMTOOLS_COVERAGE_MAPPING.out.coverage
         versions = ch_versions

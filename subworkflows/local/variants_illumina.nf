@@ -1,6 +1,6 @@
 include {
     BCFTOOLS_MPILEUP
-} from '../../modules/nf-core/bcftools/mpileup/main.nf'
+} from '../../modules/local/bcftools/mpileup/main.nf'
 include {
     FREEBAYES
 } from '../../modules/nf-core/freebayes/main.nf'

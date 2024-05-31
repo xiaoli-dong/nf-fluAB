@@ -15,7 +15,21 @@ workflow VARIANTS_NANOPORE {
     main:
         ch_versions = Channel.empty()   
         vcf = Channel.empty()
+        /*
+            Clair3 was seeing no read at 2265. Clair3 filters the alignments with the following four flags:
+            read unmapped (0x4)
+            mate unmapped (0x8)
+            not primary alignment (0x100)
+            supplementary alignment (0x800) 
+            Using samtools, the alignments can be filtered with samtools view -F 2316
 
+            Clair3 doesn't call variants in the first 16bp and last 16bp of a sequence because of 
+            1) algorithmic limit, and 
+            2) usually degenerated coverage and alignment performance in the head and tail of a sequence 
+            that makes variant calling unreliable. 
+            A solution to do the variants calling at the end is to add some 'N' to the tail of your reference genome 
+            so the end gets out of the tail 16bp limit.
+        */
         if(params.nanopore_variant_caller == 'clair3'){
             bam_bai.join(fasta_fai).multiMap {
                 it ->
@@ -33,14 +47,14 @@ workflow VARIANTS_NANOPORE {
             )
             ch_versions = ch_versions.mix(CLAIR3.out.versions)
 
-            TABIX_TABIX_VCF(CLAIR3.out.vcf)
-            vcf_tbi = CLAIR3.out.vcf.join(TABIX_TABIX_VCF.out.tbi)
+            //TABIX_TABIX_VCF(CLAIR3.out.vcf)
+            //vcf_tbi = CLAIR3.out.vcf.join(TABIX_TABIX_VCF.out.tbi)
            
            
         }
        
     emit:
-        vcf_tbi  //[meta, vcf.gz]
+        vcf_tbi = CLAIR3.out.vcf_tbi //[meta, vcf.gz]
         versions = ch_versions
         
 }

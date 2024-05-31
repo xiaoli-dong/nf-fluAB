@@ -231,7 +231,7 @@ workflow NANOPORE {
         }
 
         //bed file of the low depth regions < params.mindepth
-    BEDTOOLS_GENOMECOV_LOWDEPTH(ch_input, [], "bed")
+    BEDTOOLS_GENOMECOV_LOWDEPTH(ch_input, [], "bed") 
     
 
     VARIANTS_NANOPORE.out.vcf_tbi.join(ch_fasta_fai)
@@ -285,12 +285,12 @@ workflow NANOPORE {
     ch_nextclade_tsv = CLASSIFIER_NEXTCLADE.out.tsv.map{
         meta, tsv ->
             meta.remove("seqid")
-            [meta, tsv]
+            [meta, tsv]  
     }.groupTuple().ifEmpty([])//.view()
 
     ch_screen
         .join(CONSENSUS.out.stats.ifEmpty([]), remainder: true)
-        .join(PREPROCESS_BAM.out.coverage_rmdup.ifEmpty([]), remainder: true)
+        .join(PREPROCESS_BAM.out.coverage.ifEmpty([]), remainder: true)
         .join(CLASSIFIER_BLAST.out.tsv.ifEmpty([]), remainder: true)
         .join(ch_nextclade_tsv.ifEmpty([]), remainder: true)
         .join(ch_nextclade_dbname.ifEmpty([]), remainder: true)

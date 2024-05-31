@@ -1,15 +1,15 @@
 include {
-    BCFTOOLS_NORM as BCFTOOLS_NORM_BIALLELIC;
-    BCFTOOLS_NORM as BCFTOOLS_NORM_MULTIALLELIC;
+    BCFTOOLS_NORM;
 } from '../../modules/local/bcftools/norm/main.nf'
 
 include {
-    BCFTOOLS_VIEW;
-} from '../../modules/local/bcftools/view/main.nf'
+    SETGT;
+} from '../../modules/local/setgt.nf'
 
 include {
-    BCFTOOLS_SETGT;
-} from '../../modules/local/bcftools/setGT/main.nf'
+     TABIX_BGZIPTABIX
+} from '../../modules/nf-core/tabix/bgziptabix'
+
 
 include {
     BCFTOOLS_CONSENSUS;
@@ -41,52 +41,27 @@ workflow CONSENSUS {
     main:
         ch_versions = Channel.empty()
         
-        
-       
-        /*
-            Convert multiallelic to biallelic vcf first, output vcf.gz and index it
-        */
-        BCFTOOLS_NORM_BIALLELIC(vcf_tbi, fasta)
-        ch_versions.mix(BCFTOOLS_NORM_BIALLELIC.out.versions)
-       
+        BCFTOOLS_NORM(vcf_tbi, fasta)
+        ch_versions.mix(BCFTOOLS_NORM.out.versions)
 
         /*
-        Filter out:
-        non-variants sites and the sites whose alt is under certain value
-        keep variants whose frequency >= 0.25 and depth >= mindepth
+            filter vcf: 
+                for the biallelic variants, ignore the variants whose freq < 0.25
+                for the multiallelic variants, ignore the variants whose freq < 0.20
+            set genotype for each record
         */
-        
-        ch_input = BCFTOOLS_NORM_BIALLELIC.out.vcf.join(BCFTOOLS_NORM_BIALLELIC.out.tbi)
-        BCFTOOLS_VIEW(ch_input, [], [], []) //output vcf.gz
-        ch_versions.mix(BCFTOOLS_VIEW.out.versions)
+        ch_input = BCFTOOLS_NORM.out.vcf.join(BCFTOOLS_NORM.out.tbi)
 
-        /*
-        convert biallelic vcf to multiallelic vcf
-        SNPs and indels shuld be merged separately into two records
-        */
-        
-       
-        BCFTOOLS_VIEW.out.vcf
-            .join(BCFTOOLS_VIEW.out.tbi)
-            .join(fasta)
-            .multiMap{
-                it ->
-                    vcf_tbi: [it[0], it[1], it[2]]
-                    fasta: [it[0], it[3]]
-            }.set{
-                ch_input
-            }
-        BCFTOOLS_NORM_MULTIALLELIC(ch_input.vcf_tbi, ch_input.fasta)
-        
+        SETGT(ch_input)
+        ch_versions.mix(SETGT.out.versions)
 
-        //set genotype
-        BCFTOOLS_SETGT(BCFTOOLS_NORM_MULTIALLELIC.out.vcf)
-        ch_versions.mix(BCFTOOLS_SETGT.out.versions)
-
-        BCFTOOLS_SETGT.out.vcf
-            .join(BCFTOOLS_SETGT.out.tbi)
+        TABIX_BGZIPTABIX(SETGT.out.vcf)
+        ch_versions.mix(TABIX_BGZIPTABIX.out.versions)
+        
+        TABIX_BGZIPTABIX.out.gz_tbi
             .join(fasta)
             .join(mask_bed_file)
+            //.join(SETGT.out.low_depth_bed)
             .multiMap{
                 it ->
                     vcf_tbi_fasta: [it[0], it[1], it[2], it[3]]
@@ -97,15 +72,16 @@ workflow CONSENSUS {
         BCFTOOLS_CONSENSUS(ch_input.vcf_tbi_fasta, ch_input.mask_bed)
         ch_versions.mix(BCFTOOLS_CONSENSUS.out.versions)
         
-        //convert to tab format, change header, filter out 
-        //contigs has too may Ns > 25% and then covert back to 
-        //fasta  
+        /*
+        convert to tab format, change header, filter out 
+        contigs has too may Ns > 25% and then covert back to 
+        fasta
+        */  
         SEQKIT_FX2TAB_REFORMAT(BCFTOOLS_CONSENSUS.out.fasta)
         CONSENSUS_REHEADER(SEQKIT_FX2TAB_REFORMAT.out.text)
         SEQKIT_TAB2FX(CONSENSUS_REHEADER.out.txt)     
-
-        //CONSENSUS_REHEADER(BCFTOOLS_CONSENSUS.out.fasta)
         ch_versions.mix(CONSENSUS_REHEADER.out.versions)
+        
         SEQKIT_SORT(SEQKIT_TAB2FX.out.fastx)
         ch_versions = ch_versions.mix(SEQKIT_SORT.out.versions)
         fasta = SEQKIT_SORT.out.fasta
@@ -121,7 +97,9 @@ workflow CONSENSUS {
 }
 
 /*
-in freebayes, the variants has GT 
+Phased variants (heterozygous and homozygous) contain a modified GT field, using a pipe symbol (|) instead of forward slash in accordance with VCF 4.1 specifications. 
+in freebayes, the variants has GT
+for unphased heterozygous mutations, there is no difference between 0/1 and 1/0, by convention it is written as 0/1
 when the vaf is high: GT=1, 1 for alternate allele
 when the vaf is low: GT = 0, o fr reference allele
 For diploid organisms, it has 0 value for reference allele and 1 for the alternate allele (non-reference allele).

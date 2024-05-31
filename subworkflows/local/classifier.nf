@@ -75,7 +75,6 @@ workflow CLASSIFIER_NEXTCLADE{
                     def new_meta = [:]
                     new_meta.id = meta.id
                     new_meta.single_end = meta.single_end
-                    new_meta.basecaller_mode = meta.basecaller_mode
                     new_meta.seqid = row[0]
                 fasta: [new_meta, file(row[1], checkIfExists: true)]
                 dataset: [new_meta, file(row[2], checkIfExists: true)]

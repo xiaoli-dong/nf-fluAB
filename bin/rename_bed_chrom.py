@@ -35,7 +35,7 @@ def main():
             seqname_dict[line[0]] = line[1]
         
     file.close()
-    
+   
     fout = open(args.output, "w", encoding="utf-8")
     with open(args.bed) as file:
         reader = csv.reader(file, delimiter="\t")

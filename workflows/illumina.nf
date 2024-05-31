@@ -82,11 +82,6 @@ include {
 
 } from '../subworkflows/local/variants_illumina'
 
-include { 
-    RUN_POLYPOLISH; 
-    RUN_POLCA;    
-} from '../subworkflows/local/polisher_illumina'
-
 //
 // MODULE: Installed directly from nf-core/modules
 //
@@ -229,7 +224,7 @@ workflow ILLUMINA {
     */
 
     //produce bed file for the low depth region
-    ch_input = PREPROCESS_BAM.out.bam_bai
+   ch_input = PREPROCESS_BAM.out.bam_bai
         .map{
             it -> [it[0], it[1], 1] //[meta, bam, scale]
         }
@@ -288,7 +283,7 @@ workflow ILLUMINA {
 
     ch_screen
         .join(CONSENSUS.out.stats.ifEmpty([]), remainder: true)
-        .join(PREPROCESS_BAM.out.coverage_rmdup.ifEmpty([]), remainder: true)
+        .join(PREPROCESS_BAM.out.coverage.ifEmpty([]), remainder: true)
         .join(CLASSIFIER_BLAST.out.tsv.ifEmpty([]), remainder: true)
         .join(ch_nextclade_tsv.ifEmpty([]), remainder: true)
         .join(ch_nextclade_dbname.ifEmpty([]), remainder: true)
@@ -317,7 +312,7 @@ workflow ILLUMINA {
     
     
     CONCAT_CONSENSU_REPORT(
-        CONSENSUS_REPORT.out.csv.map { cfg, stats -> stats }.collect().view()
+        CONSENSUS_REPORT.out.csv.map { cfg, stats -> stats }.collect()//.view()
             .map{
                 files ->
                     tuple(

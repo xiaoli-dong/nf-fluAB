@@ -162,7 +162,7 @@ workflow NANOPORE {
     */
     ch_screen = Channel.empty()
     ch_fasta_fai = Channel.empty()
-    ch_header = Channel.empty()
+    ch_seq_header = Channel.empty()
 
     SEEK_REFERENCES(
         nanopore_reads, 
@@ -170,9 +170,18 @@ workflow NANOPORE {
         PREPARE_REFERENCES.out.ch_flu_db_fasta
     )
     ch_versions.mix(SEEK_REFERENCES.out.versions)
-    ch_screen = SEEK_REFERENCES.out.screen.filter{ it != null}
-    ch_fasta_fai = SEEK_REFERENCES.out.fasta_fai
-    ch_header = SEEK_REFERENCES.out.header
+    SEEK_REFERENCES.out.screen
+        .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 0}
+        .set{ch_screen}
+    
+    SEEK_REFERENCES.out.fasta_fai
+        .filter{ meta, fasta, fai -> fasta.size() > 0 && fasta.countFasta() > 0}
+        .set{ch_fasta_fai}
+
+    SEEK_REFERENCES.out.seq_header
+        .filter{meta, seq_header -> seq_header.size() > 0 && seq_header.countLines() > 0}
+        .set{ch_seq_header}
+    
 
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -201,21 +210,24 @@ workflow NANOPORE {
     */
     
     MAPPING_NANOPORE.out.bam_bai
-        .join(ch_fasta_fai).join(ch_header)
+        .join(ch_fasta_fai).join(ch_seq_header)
         .multiMap{
             it ->
                 bam: [it[0], it[1]]
                 fasta: [it[0], it[3]]
                 fai: [it[0], it[4]]
-                header: [it[0], it[5]]
+                seq_header: [it[0], it[5]]
         }
         .set{ch_input}
 
     ch_coverage = Channel.empty()
 
-    PREPROCESS_BAM(ch_input.bam, ch_input.fasta, ch_input.fai, ch_input.header)
+    PREPROCESS_BAM(ch_input.bam, ch_input.fasta, ch_input.fai, ch_input.seq_header)
     ch_versions.mix(PREPROCESS_BAM.out.versions)
-    ch_coverage = PREPROCESS_BAM.out.coverage.filter {it != null}
+    PREPROCESS_BAM.out.coverage
+        .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 0}
+        .set{ch_coverage}
+   
    
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -307,11 +319,13 @@ workflow NANOPORE {
     //ch_input.vcf.view()
     consensus_stats = Channel.empty()
     consensus_fasta = Channel.empty()
+
     CONSENSUS(ch_input.vcf_tbi_fasta, ch_input.mask)
     //CONSENSUS(ch_input.vcf_tbi, ch_input.fasta, ch_input.mask)
     ch_versions.mix(CONSENSUS.out.versions)
     consensus_stats = CONSENSUS.out.stats.filter{ it != null}
-    CONSENSUS.out.fasta.view()
+
+    
     CONSENSUS.out.fasta
         .filter {meta, fasta -> fasta.size() > 0 && fasta.countFasta() > 0}
         .set { consensus_fasta }
@@ -323,8 +337,6 @@ workflow NANOPORE {
     */
     
     ch_typing = Channel.empty()
-    consensus_fasta.view()
-    PREPARE_REFERENCES.out.ch_typing_db.view()
     CLASSIFIER_BLAST(consensus_fasta, PREPARE_REFERENCES.out.ch_typing_db)
     ch_versions.mix(CLASSIFIER_BLAST.out.versions)
     ch_typing = CLASSIFIER_BLAST.out.tsv.filter{ it != null}

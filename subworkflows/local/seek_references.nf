@@ -65,13 +65,13 @@ workflow SEEK_REFERENCES {
         fasta_fai = fasta.join(SAMTOOLS_FAIDX.out.fai)
         
         SEQKIT_SEQ(fasta)
-        header = SEQKIT_SEQ.out.txt
+        seq_header = SEQKIT_SEQ.out.txt
         //SEQKIT_GREP.out.fasta.view()
         
     emit:
         screen = screen_best
         fasta_fai 
-        header
+        seq_header
         versions = ch_versions
         
 }

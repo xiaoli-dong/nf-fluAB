@@ -28,12 +28,19 @@ def checkPathParamList = [
     params.nextclade_dataset_base
 ]
 
-for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
+for (param in checkPathParamList) { 
+    if (param) { 
+        file(param, checkIfExists: true) 
+    } 
+}
 
 // Check mandatory parameters
-if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
-
-
+if (params.input) { 
+    ch_input = file(params.input) 
+} 
+else { 
+    exit 1, 'Input samplesheet not specified!' 
+}
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT LOCAL MODULES/SUBWORKFLOWS
@@ -69,13 +76,12 @@ include {
 
 include {
     VARIANTS_ILLUMINA;
-
 } from '../subworkflows/local/variants_illumina'
 
 include {
     PREPROCESS_VCF;
-
 } from '../subworkflows/local/preprocess_vcf'
+
 include {
     CONSENSUS
 } from '../subworkflows/local/consensus'
@@ -84,8 +90,6 @@ include {
     CLASSIFIER_BLAST;
     CLASSIFIER_NEXTCLADE;
 } from '../subworkflows/local/classifier'
-
-
 
 //
 // MODULE: Installed directly from nf-core/modules
@@ -133,15 +137,12 @@ workflow ILLUMINA {
     INPUT_CHECK (ch_input)
     ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
     illumina_reads = INPUT_CHECK.out.shortreads
-    //illumina_reads.view()
-
+    
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         sequence quality control
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
-
-
     if(!params.skip_illumina_reads_qc){
         QC_ILLUMINA(
             illumina_reads,
@@ -164,7 +165,7 @@ workflow ILLUMINA {
     */
     ch_screen = Channel.empty()
     ch_fasta_fai = Channel.empty()
-    ch_header = Channel.empty()
+    ch_seq_header = Channel.empty()
 
     SEEK_REFERENCES(
         illumina_reads, 
@@ -181,9 +182,10 @@ workflow ILLUMINA {
         .filter{ meta, fasta, fai -> fasta.size() > 0 && fasta.countFasta() > 0}
         .set{ch_fasta_fai}
 
-    SEEK_REFERENCES.out.header
-        .filter{meta, header -> header.size() > 0 && header.countLines() > 0}
-        .set{ch_header}
+    SEEK_REFERENCES.out.seq_header
+        .filter{meta, seq_header -> seq_header.size() > 0 && seq_header.countLines() > 0}
+        .set{ch_seq_header}
+    
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         pair sample reads with the identified references
@@ -211,18 +213,18 @@ workflow ILLUMINA {
     */
 
     MAPPING_ILLUMINA.out.bam_bai
-        .join(ch_fasta_fai).join(ch_header)
+        .join(ch_fasta_fai).join(ch_seq_header)
         .multiMap{
             it ->
                 bam: [it[0], it[1]]
                 fasta: [it[0], it[3]]
                 fai: [it[0], it[4]]
-                header: [it[0], it[5]]
+                seq_header: [it[0], it[5]]
         }
         .set{ch_input}
 
     ch_coverage = Channel.empty()
-    PREPROCESS_BAM(ch_input.bam, ch_input.fasta, ch_input.fai, ch_input.header)
+    PREPROCESS_BAM(ch_input.bam, ch_input.fasta, ch_input.fai, ch_input.seq_header)
     ch_versions.mix(PREPROCESS_BAM.out.versions)
     
     PREPROCESS_BAM.out.coverage
@@ -300,9 +302,11 @@ workflow ILLUMINA {
         }
     consensus_stats = Channel.empty()
     consensus_fasta = Channel.empty()
+
     CONSENSUS(ch_input.vcf_tbi_fasta, ch_input.mask)
     ch_versions.mix(CONSENSUS.out.versions)
     consensus_stats = CONSENSUS.out.stats.filter{ it != null}
+    
     CONSENSUS.out.fasta
         .filter {meta, fasta -> fasta.size() > 0 && fasta.countFasta() > 0}
         .set { consensus_fasta }

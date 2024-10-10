@@ -39,14 +39,25 @@ workflow QC_NANOPORE {
         // QC
         PORECHOP_PORECHOP(reads)
         ch_versions = ch_versions.mix(PORECHOP_PORECHOP.out.versions.first())
-        PORECHOP_STATS(PORECHOP_PORECHOP.out.reads)
+        
+        PORECHOP_PORECHOP.out.reads
+                .filter {meta, reads -> reads.size() > 0 && reads.countFastq() > 0}
+                .set { trimmed_reads }
+        //trimmed_reads = PORECHOP_PORECHOP.out.reads
+        PORECHOP_STATS(trimmed_reads)
         ch_versions = ch_versions.mix(PORECHOP_STATS.out.versions.first())
         
-        CHOPPER(PORECHOP_PORECHOP.out.reads)
+        CHOPPER(trimmed_reads)
         ch_versions = ch_versions.mix(CHOPPER.out.versions.first())
-        CHOPPER_STATS(CHOPPER.out.fastq)
+        
+        
+        CHOPPER.out.fastq
+            .filter {meta, fastq -> fastq.size() > 0 && fastq.countFastq() > 0}
+            //.filter { meta, reads -> reads[0].countFastq() > 0 }
+            .set { filtered_reads }
+        CHOPPER_STATS(filtered_reads)
 
-        HOSTILE(CHOPPER.out.fastq, "minimap2", hostile_ref)
+        HOSTILE(filtered_reads, "minimap2", hostile_ref)
         ch_versions = ch_versions.mix(HOSTILE.out.versions.first())
         HOSTILE_STATS(HOSTILE.out.reads)
 

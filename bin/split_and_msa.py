@@ -107,7 +107,7 @@ name_dict = defaultdict(str)
 
 if args.name_list is not None:
     name_dict = readNames(args.name_list)
-    #print(name_dict)
+    print(name_dict)
 
 ref = readFasta(args.fasta)
 allseqs_dict = multi_dict(4, str)
@@ -119,8 +119,8 @@ for filename in glob.glob(args.indir + '/*.fasta'):
     #print(c_dict)  
 
 #prepare output dir for split segment fasta file
-seg_fasta = os.path.join(args.outdir, "segments_fasta")
-mafft_fasta = os.path.join(args.outdir, "segments_mafft_fasta")
+seg_fasta = os.path.join(args.outdir, "fasta")
+mafft_fasta = os.path.join(args.outdir, "mafft")
 
 if not os.path.exists(args.outdir):
     os.mkdir(path = args.outdir)

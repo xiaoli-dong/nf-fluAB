@@ -1,0 +1,6 @@
+name: consensus_reformat
+channels:
+  - conda-forge
+  - default
+dependencies:
+  - conda-forge::python=3.9

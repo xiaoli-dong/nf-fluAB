@@ -11,8 +11,12 @@ class WorkflowNanopore {
     //
     public static void initialise(params, log, valid_params) {
         
-        if (!valid_params['nanopore_reads_mapping_tools'].contains(params.nanopore_reads_mapping_tool)) {
-            log.error "Invalid option: '${params.nanopore_reads_mapping_tool}'. Valid options for '--nanopore_reads_mapping_tool': ${valid_params['nanopore_reads_mapping_tools'].join(', ')}."
+        if (!valid_params['nanopore_reads_mapping_tools'].contains(params.mapping_tool)) {
+            log.error "Invalid option: '${params.mapping_tool}'. Valid options for nanopore data is '--mapping_tool': ${valid_params['nanopore_reads_mapping_tools'].join(', ')}."
+            System.exit(1)
+        }
+        if (!valid_params['nanopore_variant_callers'].contains(params.variant_caller)) {
+            log.error "Invalid option: '${params.variant_caller} for nanopore data'. Valid options for '--variant_caller': ${valid_params['nanopore_variant_callers'].join(', ')}."
             System.exit(1)
         }
         

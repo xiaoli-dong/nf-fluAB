@@ -128,11 +128,10 @@
             "fa_icon": "fas fa-terminal",
             "description": "reads mapping, variant calling, consensus generating",
             "required": [
-                "illumina_reads_mapping_tool",
-                "nanopore_reads_mapping_tool"
+                "mapping_tool"
             ],
             "properties": {
-                "illumina_reads_mapping_tool": {
+                "mapping_tool": {
                     "type": "string",
                     "description": "illumina read mapping tool. The available options are: 'minimap2|bwa'.",
                     "default": "minimap2",
@@ -141,28 +140,13 @@
                         "bwa"
                     ]
                 },
-                "nanopore_reads_mapping_tool": {
+                "variant_caller": {
                     "type": "string",
-                    "description": "illumina read mapping tool. The available options are: 'minimap2'.",
-                    "default": "minimap2",
-                    "enum": [
-                        "minimap2"
-                    ]
-                },
-                "illumina_variant_caller": {
-                    "type": "string",
-                    "description": "illumina variant caller. The available options are 'bcftools|freebayes'",
+                    "description": "variant caller. The available options are 'bcftools|freebayes|clair3'",
                     "default": "bcftools",
                     "enum": [
                         "bcftools",
-                        "freebayes"
-                    ]
-                },
-                "nanopore_variant_caller": {
-                    "type": "string",
-                    "description": "nanopore variant caller. The available options are 'clair3'",
-                    "default": "clair3",
-                    "enum": [
+                        "freebayes",
                         "clair3"
                     ]
                 },

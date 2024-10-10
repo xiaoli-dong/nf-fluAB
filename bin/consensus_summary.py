@@ -25,10 +25,10 @@ def parse_consensus_stats(stats_file):
         return stats_dict, seqid2ref_dict
 
     if os.path.exists(stats_file) == False or os.path.isfile(stats_file) == False:
-        print(f"\nERROR: coverage file {stats_file} does not exist.\n", file=sys.stderr)
+        print(f"\nERROR: consensus stats file {stats_file} does not exist.\n", file=sys.stderr)
         exit(1)
     if os.path.getsize(stats_file) == 0:
-        print(f"\nWarning: coverage file {stats_file} is empty.\n", file=sys.stderr)
+        print(f"\nWarning: consensus stats file {stats_file} is empty.\n", file=sys.stderr)
         # exit(1)
         return stats_dict, seqid2ref_dict
 
@@ -36,7 +36,7 @@ def parse_consensus_stats(stats_file):
         reader = csv.DictReader(fx2tab_file, delimiter="\t")
         for row in reader:
             seqid = row.pop("#id")
-            refid = seqid.split('-ref_accession_')[1]
+            refid = seqid.split('-ref_')[1]
             stats_dict[seqid] = {}
             stats_dict[seqid]['gene_length'] = row["length"]
             stats_dict[seqid]['total_ATCG'] = row["ATCG"]
@@ -107,10 +107,10 @@ def parse_typing_file(blast_tabular_output):
         return typing_dict
 
     if os.path.exists(blast_tabular_output) == False or os.path.isfile(blast_tabular_output) == False:
-        print(f"\nERROR: coverage file {blast_tabular_output} does not exist.\n", file=sys.stderr)
+        print(f"\nERROR: typing file {blast_tabular_output} does not exist.\n", file=sys.stderr)
         exit(1)
     if os.path.getsize(blast_tabular_output) == 0:
-        print(f"\nWarning: coverage file {blast_tabular_output} is empty.\n", file=sys.stderr)
+        print(f"\nWarning: typing file {blast_tabular_output} is empty.\n", file=sys.stderr)
         # exit(1)
         return typing_dict
 
@@ -260,7 +260,9 @@ def dict_merge(*args, add_keys=True):
     assert len(args) >= 2, "dict_merge requires at least two dicts to merge"
     rtn_dct = args[0].copy()
     merge_dicts = args[1:]
+    
     for merge_dct in merge_dicts:
+       
         if add_keys is False:
             merge_dct = {key: merge_dct[key] for key in set(rtn_dct).intersection(set(merge_dct))}
         for k, v in merge_dct.items():
@@ -341,22 +343,21 @@ def main():
             c_stats_dict[cid].update(c_cov_dict[refid])
     
 
-
     c_typing_dict = parse_typing_file(args.c_typing_file)
-    if args.c_nextclade_files == 'null':
-        print("nextclade_file is null", file=sys.stderr)
-        c_nextclade_dict = parse_nextclade_files(None, "\t")
-    else:
-         c_nextclade_dict = parse_nextclade_files(args.c_nextclade_files, "\t")
-    if args.c_nextclade_dbnames == 'null':
-        c_nextclade_dbnames  = parse_nextclade_dbnames(None, "\t")
-    else:
-        c_nextclade_dbnames  = parse_nextclade_dbnames(args.c_nextclade_dbnames, "\t")
-    c2mash_dict  = parse_mashcreen_file(args.c_mashscreen_file, c_seqid2ref_dict, args.db_ver)
+    
+    c_nextclade_dict = parse_nextclade_files(args.c_nextclade_files, "\t")
+    
+    c_nextclade_dbnames  = parse_nextclade_dbnames(args.c_nextclade_dbnames, "\t")
 
+    c2mash_dict  = parse_mashcreen_file(args.c_mashscreen_file, c_seqid2ref_dict, args.db_ver)
+    
     total_summary = dict_merge(c_stats_dict, c_typing_dict, c_nextclade_dict, c_nextclade_dbnames, c2mash_dict)
+    total_summary = dict_merge(c_stats_dict, c_typing_dict, c_nextclade_dict, c_nextclade_dbnames, c2mash_dict)
+    
     jsonString = json.dumps(total_summary, indent=4)
+   
     print(jsonString, file=sys.stderr)
+
     """ json_summary_file = open(f"{args.prefix}.json", "w")
     json_summary_file.write(jsonString)
     json_summary_file.close() """
@@ -390,6 +391,7 @@ def main():
 
     for cid in sorted(total_summary.keys()):
         values = [cid]
+       
         for field in field_names:
             if field in total_summary[cid]:
                 if isinstance(total_summary[cid][field], int) or  isinstance(total_summary[cid][field], float):

@@ -1,6 +1,11 @@
 include {
     BCFTOOLS_MPILEUP
 } from '../../modules/local/bcftools/mpileup/main.nf'
+
+include {
+    BCFTOOLS_SORT
+} from '../../modules/local/bcftools/sort'
+
 include {
     FREEBAYES
 } from '../../modules/nf-core/freebayes/main.nf'
@@ -9,9 +14,6 @@ include {
     TABIX_TABIX
 } from '../../modules/nf-core/tabix/tabix'
 
-include {
-    BCFTOOLS_SORT
-} from '../../modules/nf-core/bcftools/sort'
 
 workflow VARIANTS_ILLUMINA {   
 
@@ -22,7 +24,7 @@ workflow VARIANTS_ILLUMINA {
         ch_versions = Channel.empty()
         vcf_tbi = Channel.empty()
 
-        if(params.illumina_variant_caller == 'freebayes'){
+        if(params.variant_caller == 'freebayes'){
         
             bam_bai.join(fasta_fai).multiMap{
                 it ->
@@ -47,7 +49,7 @@ workflow VARIANTS_ILLUMINA {
 
             vcf_tbi = BCFTOOLS_SORT.out.vcf.join(TABIX_TABIX.out.tbi)
         }
-        else if(params.illumina_variant_caller == 'bcftools'){
+        else if(params.variant_caller == 'bcftools'){
             bam_bai.join(fasta_fai).multiMap{
             it ->
                 bam_interval: [it[0], it[1], []]

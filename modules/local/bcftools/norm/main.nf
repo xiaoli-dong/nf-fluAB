@@ -7,6 +7,8 @@ process BCFTOOLS_NORM {
         'https://depot.galaxyproject.org/singularity/bcftools%3A1.20--h8b25389_0':
         'biocontainers/bcftools:1.20--h8b25389_0' }"
 
+
+
     input:
     tuple val(meta), path(vcf), path(tbi)
     tuple val(meta2), path(fasta)

@@ -19,10 +19,10 @@ def main():
         help=f"The screen file name from the mash screen output\n",
     )
     parser.add_argument(
-        "-p",
-        "--prefix",
+        "-o",
+        "--output",
         required=True,
-        help=f"The prefix of the output file\n",
+        help=f"The filtered output file\n",
     )
     parser.add_argument(
         "-m",
@@ -39,7 +39,7 @@ def main():
     # 0.931235        224/1000        1046    0       AB434290        Pig|6|NA|H1N1|Thailand|A/swine/Ratchaburi/NIAH1481/2000|N1|na|na|na
     # open .tsv file
 
-    f = open(f"{args.prefix}.screen", "w", encoding="utf-8")
+    f = open(f"{args.output}", "w", encoding="utf-8")
     #segments = {"PB1": False, "PB2": False, "PA": False, "HA": False, "NP": False, "NA": False, "M": False, "NS": False}
     segments = {}
     header = ['identity', 'shared-hashes', 'median-multiplicity', 'p-value', 'query-ID', 'query-comment']

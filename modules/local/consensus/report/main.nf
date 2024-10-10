@@ -1,4 +1,4 @@
-process CONSENSUS_REPORT {
+process CONSENSUS_REPORT{
     tag "$meta.id"
     label 'process_single'
 
@@ -22,18 +22,26 @@ process CONSENSUS_REPORT {
 
     when:
     task.ext.when == null || task.ext.when
-
+   
     script:
     def args = task.ext.args ?: ''
     prefix = task.ext.prefix ?: "${meta.id}"
+
+    def stats_file = stats ? "--c-stats-file ${stats}" : ""
+    def cov_file = cov ? " --c-coverage-file ${cov}" : ""
+    def typing_file = typing ? "--c-typing-file ${typing}" : ""
+    def nextclade_csv_files = nextclade_csv ? "--c-nextclade-files ${nextclade_csv}" : ""
+    def nextclade_db_files = nextclade_dbnames ? "--c-nextclade-dbnames ${nextclade_dbnames}" : ""
+    def mashscreen_file = ref_screen ? "--c-mashscreen-file ${ref_screen}" : ""
+    
     """
     consensus_summary.py \\
-        --c-stats-file ${stats} \\
-        --c-coverage-file ${cov} \\
-        --c-typing-file ${typing} \\
-        --c-nextclade-files ${nextclade_csv} \\
-        --c-nextclade-dbnames ${nextclade_dbnames} \\
-        --c-mashscreen-file ${ref_screen} \\
+        ${mashscreen_file} \\
+        ${stats_file} \\
+        ${cov_file} \\
+        ${typing_file} \\
+        ${nextclade_csv_files} \\
+        ${nextclade_db_files} \\
         --db-ver ${dbver} \\
         > ${prefix}.csv
 

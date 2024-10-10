@@ -69,6 +69,32 @@ workflow PREPARE_REFERENCES {
     }
 
     //
+    // Prepare snpeff.config file
+    //
+    ch_snpeff_config = Channel.empty()
+    
+    if (params.snpeff_config) {
+        ch_snpeff_config = Channel.value(file(params.snpeff_config))
+    }
+    else {
+        log.error "Please specify a valid snpeff.config file"
+        System.exit(1)
+    }
+
+    //
+    // Prepare snpeff dataDir
+    //
+    ch_snpeff_dataDir = Channel.empty()
+    
+    if (params.snpeff_dataDir) {
+        ch_snpeff_dataDir = Channel.value(file(params.snpeff_dataDir))
+    }
+    else {
+        log.error "Please specify a valid snpeff dataDir directory"
+        System.exit(1)
+    }
+
+    //
     // Prepare typing database
     //
     ch_typing_db = Channel.empty()
@@ -94,7 +120,9 @@ workflow PREPARE_REFERENCES {
     emit:
         ch_flu_primers
         ch_flu_db_msh 
-        ch_flu_db_fasta 
+        ch_flu_db_fasta
+        ch_snpeff_config
+        ch_snpeff_dataDir
         ch_typing_db
         ch_clair3_variant_model
         ch_hostile_ref_bowtie2

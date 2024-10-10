@@ -75,40 +75,58 @@ def main():
 
              #ALT is a list
             #filter out the regions having no variants
-            print(record.ALT[0])
+            #print(record.ALT[0])
             
             
             if record.ALT[0].value == '*' or record.ALT[0].value == 'NON_REF':
+                #print(len(record.REF), file=sys.stderr)
                 break
-
+            
             dp = call.data.get('DP')
 
             # create a bed file for masking the low depth region
             if dp < args.min_depth:
                 break
            
-            ad_freq = []
-            gt_value = []
+            
+            ad_freq_dict = {}
             ad_list = call.data.get('AD')
-            for var in ad_list:
-                # calculate allele freq
-                ad_freq.append(var/dp)
-            max_freq = max(ad_freq)
-            max_freq_index = ad_freq.index(max_freq)
+            
+            reflen = len(record.REF[0])
+            reffreq = ad_list[0]/dp
+            
+            if reffreq > args.lower_allele_freq_limit:
+                ad_freq_dict[0] = reffreq
+
+            i = 1 #alt index started with 1 in AD tag array
+            
+            max_freq = reffreq
+            max_index = 0
+
+            while i < len(ad_list):
+                altfreq = ad_list[i]/dp
+                    # ignore low frequency variants
+                if altfreq >= args.lower_allele_freq_limit:
+                    ad_freq_dict[i] = altfreq
+                    if altfreq > max_freq:
+                        max_freq = altfreq
+                        max_index = i
+                i += 1
+              
+            keys = list(ad_freq_dict.keys())
+
             if max_freq >= float(args.upper_allele_freq_limit):
-                call.data['GT'] = str(max_freq_index) + "/" + str(max_freq_index)
+                call.data['GT'] = str(max_index) + "/" + str(max_index)
                 writer.write_record(record) 
-            else:
-                for i in range(len(ad_freq)):
-                    if ad_freq[i] >= args.lower_allele_freq_limit:
-                        gt_value.append(i)
-                if len(gt_value) == 1:
-                    call.data['GT'] = str(gt_value[0]) + "/" + str(gt_value[0])
+            elif len(keys) >= 1:
+                #print(keys)
+                #all.data['GT'] = "/".join(keys)
+                if len(keys) == 1:
+                    call.data['GT'] = str(keys[0]) + "/" + str(keys[0])
+                    writer.write_record(record)
+                else:
+                    call.data['GT'] = "/".join([str(i) for i in keys])
                     writer.write_record(record) 
-                elif len(gt_value) >= 2:
-                    call.data['GT'] = "/".join([str(i) for i in gt_value])
-                    writer.write_record(record) 
-                  
-       
+                         
 if __name__ == "__main__":
     main()

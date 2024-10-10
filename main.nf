@@ -1,16 +1,5 @@
 #!/usr/bin/env nextflow
 
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    nf-core/influenza
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Github : https://github.com/nf-core/influenza
-
-    Website: https://nf-co.re/influenza
-    Slack  : https://nfcore.slack.com/channels/influenza
-----------------------------------------------------------------------------------------
-*/
-
 nextflow.enable.dsl = 2
 
 WorkflowMain.initialise(workflow, params, log)

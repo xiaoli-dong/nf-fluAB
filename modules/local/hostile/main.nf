@@ -24,13 +24,14 @@ process HOSTILE {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     def input = meta.single_end ? "--fastq1 ${reads[0]}" : "--fastq1 ${reads[0]} --fastq2 ${reads[1]}"
-    
-    if (aligner =~ /bowtie2/) {
+    def index = aligner =~ /bowtie2/ ? "${ref}/${ref}" : "${ref}"
+
+   // if (aligner =~ /bowtie2/) {
         """
         hostile clean \\
             --aligner ${aligner} \\
             --out-dir ./ \\
-            --index ${ref}/${ref} \\
+            --index ${index} \\
             --threads $task.cpus \\
             ${input} \\
             $args \\
@@ -42,13 +43,13 @@ process HOSTILE {
             hostile: \$(hostile --version)
         END_VERSIONS
         """
-    } else if (aligner =~ /minimap2/) {
+    /* } else if (aligner =~ /minimap2/) {
         
         """
         hostile clean \\
             --aligner ${aligner} \\
             --out-dir ./ \\
-            --index ${ref} \\
+            --index ${index} \\
             --threads $task.cpus \\
             ${input} \\
             $args \\
@@ -60,5 +61,5 @@ process HOSTILE {
             hostile: \$(hostile --version)
         END_VERSIONS
         """
-    }
+    } */
 }

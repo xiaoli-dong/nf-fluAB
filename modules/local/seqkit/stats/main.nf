@@ -24,10 +24,9 @@ process SEQKIT_STATS {
     def cmd = gzipped ? 'zcat' : 'cat'
 
     """
-    ${cmd} ${reads} | \\
-        seqkit stats \\
-        -i ${meta.id} \\
+    seqkit stats \\
         $args \\
+        ${reads} \\
         -o ${prefix}.tsv
 
     cat <<-END_VERSIONS > versions.yml

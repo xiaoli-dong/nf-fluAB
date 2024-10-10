@@ -29,7 +29,7 @@ workflow MAPPING_NANOPORE {
         
         sam = Channel.empty()
         
-        if ( params.nanopore_reads_mapping_tool == 'minimap2' ){
+        if ( params.mapping_tool == 'minimap2' ){
             sam_format = true
            
             reads.join(fasta).multiMap{

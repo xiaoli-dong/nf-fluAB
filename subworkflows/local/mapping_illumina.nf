@@ -31,30 +31,33 @@ workflow MAPPING_ILLUMINA {
         ch_versions = Channel.empty()
         
         sam = Channel.empty()
-        if ( params.illumina_reads_mapping_tool == 'minimap2' ){
+        if ( params.mapping_tool == 'minimap2' ){
             sam_format = true
-            reads.join(fasta).multiMap{
+            /* reads.join(fasta).multiMap{
                 it ->
                     reads: [it[0], it[1]]
                     fasta: it[2]
             }.set{ ch_input }
 
             MINIMAP2_ALIGN(ch_input.reads, ch_input.fasta, sam_format)
+            */
+            MINIMAP2_ALIGN(reads, fasta, sam_format)
             ch_versions = ch_versions.mix(MINIMAP2_ALIGN.out.versions.first())
             sam = MINIMAP2_ALIGN.out.sam
         }
-        else if(params.illumina_reads_mapping_tool == 'bwa'){
+        else if(params.mapping_tool == 'bwa'){
            
             BWAMEM2_INDEX(fasta)
             ch_versions = ch_versions.mix(BWAMEM2_INDEX.out.versions.first())
 
-            reads.join(BWAMEM2_INDEX.out.index).multiMap{
+            /* reads.join(BWAMEM2_INDEX.out.index).multiMap{
                 it ->
                     reads: [it[0], it[1]]
                     index: [it[0], it[2]]
             }.set{ ch_input }
 
-            BWAMEM2_MEM ( ch_input.reads, ch_input.index)
+            BWAMEM2_MEM ( ch_input.reads, ch_input.index) */
+            BWAMEM2_MEM ( reads, BWAMEM2_INDEX.out.index)
             ch_versions = ch_versions.mix(BWAMEM2_MEM.out.versions.first())
             sam = BWAMEM2_MEM.out.sam
         }
@@ -70,14 +73,13 @@ workflow MAPPING_ILLUMINA {
         SAMTOOLS_SORT (SAMTOOLS_FIXMATE.out.bam)
         ch_versions = ch_versions.mix(SAMTOOLS_SORT.out.versions.first())
         
-        SAMTOOLS_COVERAGE_MAPPING(SAMTOOLS_SORT.out.bam_bai)
+        /* SAMTOOLS_COVERAGE_MAPPING(SAMTOOLS_SORT.out.bam_bai)
         ch_versions = ch_versions.mix(SAMTOOLS_COVERAGE_MAPPING.out.versions.first())
-
+ */
         
     emit:
         bam_bai = SAMTOOLS_SORT.out.bam_bai
-        fasta
-        coverage = SAMTOOLS_COVERAGE_MAPPING.out.coverage
+        //coverage = SAMTOOLS_COVERAGE_MAPPING.out.coverage
         versions = ch_versions
         
 }

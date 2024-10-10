@@ -2,10 +2,6 @@ include {
     CLAIR3
 } from '../../modules/local/clair3/main'
 
-include {
-    TABIX_TABIX as TABIX_TABIX_VCF;
-} from '../../modules/nf-core/tabix/tabix'
-
 workflow VARIANTS_NANOPORE {   
 
     take:
@@ -30,7 +26,8 @@ workflow VARIANTS_NANOPORE {
             A solution to do the variants calling at the end is to add some 'N' to the tail of your reference genome 
             so the end gets out of the tail 16bp limit.
         */
-        if(params.nanopore_variant_caller == 'clair3'){
+        vcf_tbi = Channel.empty()
+        if(params.variant_caller == 'clair3'){
             bam_bai.join(fasta_fai).multiMap {
                 it ->
                     bam_bai: [it[0], it[1], it[2]]
@@ -45,16 +42,15 @@ workflow VARIANTS_NANOPORE {
                 ch_input.fasta_fai, 
                 Channel.value(file(params.clair3_variant_model))
             )
+            vcf_tbi = CLAIR3.out.vcf_tbi
             ch_versions = ch_versions.mix(CLAIR3.out.versions)
 
-            //TABIX_TABIX_VCF(CLAIR3.out.vcf)
-            //vcf_tbi = CLAIR3.out.vcf.join(TABIX_TABIX_VCF.out.tbi)
            
            
         }
        
     emit:
-        vcf_tbi = CLAIR3.out.vcf_tbi //[meta, vcf.gz]
+        vcf_tbi //[meta, vcf.gz]
         versions = ch_versions
         
 }

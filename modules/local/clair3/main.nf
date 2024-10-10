@@ -29,14 +29,13 @@ process CLAIR3 {
   def args = task.ext.args ?: ''
   def prefix = task.ext.prefix ?: "${meta.id}"
 
-  vcf         = "${prefix}.clair3.gvcf.gz"
-  tbi         = "${prefix}.clair3.gvcf.gz.tbi"  
+  vcf         = "${prefix}.clair3.vcf.gz"
+  tbi         = "${prefix}.clair3.vcf.gz.tbi"  
   clair3_dir   = "${prefix}.clair3"
   clair3_log   = "${clair3_dir}/run_clair3.log"
   
   """
   run_clair3.sh \\
-      --gvcf \\
       --bam_fn=${bam} \\
       --ref_fn=$fasta \\
       --model_path=${model_path} \\
@@ -44,9 +43,9 @@ process CLAIR3 {
       --output=${clair3_dir} \\
       $args 
   
-  if [ -f ${clair3_dir}/merge_output.gvcf.gz ]; then
-        ln -s ${clair3_dir}/merge_output.gvcf.gz ${vcf}
-        ln -s ${clair3_dir}/merge_output.gvcf.gz.tbi ${tbi}
+  if [ -f ${clair3_dir}/merge_output.vcf.gz ]; then
+        ln -s ${clair3_dir}/merge_output.vcf.gz ${vcf}
+        ln -s ${clair3_dir}/merge_output.vcf.gz.tbi ${tbi}
   fi
  
   

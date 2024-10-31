@@ -33,15 +33,15 @@ workflow MAPPING_ILLUMINA {
         sam = Channel.empty()
         if ( params.mapping_tool == 'minimap2' ){
             sam_format = true
-            /* reads.join(fasta).multiMap{
+            reads.join(fasta).multiMap{
                 it ->
                     reads: [it[0], it[1]]
                     fasta: it[2]
             }.set{ ch_input }
 
             MINIMAP2_ALIGN(ch_input.reads, ch_input.fasta, sam_format)
-            */
-            MINIMAP2_ALIGN(reads, fasta, sam_format)
+            
+            //MINIMAP2_ALIGN(reads, fasta, sam_format)
             ch_versions = ch_versions.mix(MINIMAP2_ALIGN.out.versions.first())
             sam = MINIMAP2_ALIGN.out.sam
         }
@@ -50,14 +50,14 @@ workflow MAPPING_ILLUMINA {
             BWAMEM2_INDEX(fasta)
             ch_versions = ch_versions.mix(BWAMEM2_INDEX.out.versions.first())
 
-            /* reads.join(BWAMEM2_INDEX.out.index).multiMap{
+            reads.join(BWAMEM2_INDEX.out.index).multiMap{
                 it ->
                     reads: [it[0], it[1]]
                     index: [it[0], it[2]]
             }.set{ ch_input }
 
-            BWAMEM2_MEM ( ch_input.reads, ch_input.index) */
-            BWAMEM2_MEM ( reads, BWAMEM2_INDEX.out.index)
+            BWAMEM2_MEM ( ch_input.reads, ch_input.index) 
+            //BWAMEM2_MEM ( reads, BWAMEM2_INDEX.out.index)
             ch_versions = ch_versions.mix(BWAMEM2_MEM.out.versions.first())
             sam = BWAMEM2_MEM.out.sam
         }

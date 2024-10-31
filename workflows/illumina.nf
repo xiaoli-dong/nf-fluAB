@@ -177,7 +177,7 @@ workflow ILLUMINA {
     SEEK_REFERENCES.out.screen
         .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 0}
         .set{ch_screen}
-    
+    //ch_screen.view()
     SEEK_REFERENCES.out.fasta_fai
         .filter{ meta, fasta, fai -> fasta.size() > 0 && fasta.countFasta() > 0}
         .set{ch_fasta_fai}
@@ -216,7 +216,7 @@ workflow ILLUMINA {
         .join(ch_fasta_fai).join(ch_seq_header)
         .multiMap{
             it ->
-                bam: [it[0], it[1]]
+                bam_bai: [it[0], it[1], it[2]]
                 fasta: [it[0], it[3]]
                 fai: [it[0], it[4]]
                 seq_header: [it[0], it[5]]
@@ -224,13 +224,13 @@ workflow ILLUMINA {
         .set{ch_input}
 
     ch_coverage = Channel.empty()
-    PREPROCESS_BAM(ch_input.bam, ch_input.fasta, ch_input.fai, ch_input.seq_header)
+    PREPROCESS_BAM(ch_input.bam_bai, ch_input.fasta, ch_input.fai, ch_input.seq_header)
     ch_versions.mix(PREPROCESS_BAM.out.versions)
     
     PREPROCESS_BAM.out.coverage
         .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 0}
         .set{ch_coverage}
-   
+    //ch_coverage.view()
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         variant calling
@@ -289,8 +289,7 @@ workflow ILLUMINA {
 
      
     
-    PREPROCESS_VCF.out.vcf
-        .join(PREPROCESS_VCF.out.tbi)
+    PREPROCESS_VCF.out.vcf_tbi
         .join(ch_fasta_fai)
         .join(BEDTOOLS_GENOMECOV_LOWDEPTH.out.genomecov)
         .multiMap{
@@ -305,11 +304,16 @@ workflow ILLUMINA {
 
     CONSENSUS(ch_input.vcf_tbi_fasta, ch_input.mask)
     ch_versions.mix(CONSENSUS.out.versions)
-    consensus_stats = CONSENSUS.out.stats.filter{ it != null}
-    
+    CONSENSUS.out.stats
+        //.filter{ it != null}
+        .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 0}
+        .set{consensus_stats}
+    //consensus_stats.view()
+
     CONSENSUS.out.fasta
         .filter {meta, fasta -> fasta.size() > 0 && fasta.countFasta() > 0}
         .set { consensus_fasta }
+    //consensus_fasta.view()
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Typing consensus
@@ -318,7 +322,11 @@ workflow ILLUMINA {
     ch_typing = Channel.empty()
     CLASSIFIER_BLAST(CONSENSUS.out.fasta, PREPARE_REFERENCES.out.ch_typing_db)
     ch_versions.mix(CLASSIFIER_BLAST.out.versions)
-    ch_typing = CLASSIFIER_BLAST.out.tsv.filter{ it != null}
+    CLASSIFIER_BLAST.out.tsv
+        //.filter{ it != null}
+        .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 1}
+        .set{ch_typing}
+    //ch_typing.view()
 
     consensus_fasta.join(ch_typing).multiMap{
         it ->
@@ -341,35 +349,46 @@ workflow ILLUMINA {
     ch_nextclade_tsv = Channel.empty()
 
     ch_nextclade_dbs = CLASSIFIER_NEXTCLADE.out.dbname
-        .filter{ it != null}
+        //.filter{ it != null}
+        .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 1}
         .groupTuple()
     ch_nextclade_tsv = CLASSIFIER_NEXTCLADE.out.tsv
-        .filter{ it != null}
+        //.filter{ it != null}
+        .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 1}
         .map{
             meta, tsv ->
                 meta.remove("seqid")
                 [meta, tsv]  
         }.groupTuple()
     
-   ch_screen
-        .join(ch_coverage, remainder: true)//.view()
-        .join(consensus_stats, remainder: true)//.view()
-        .join(ch_typing, remainder: true)//.view()
-        .join(ch_nextclade_tsv, remainder: true)//.view()
-        .join(ch_nextclade_dbs, remainder: true).view()
-        .multiMap{
-            it -> 
-                screen:  it[1] != null ? [it[0], it[1]] : [[], []]
-                cov:  it[2] != null ? [it[0], it[2]] : [[], []]
-                stats:  it[3] != null ? [it[0], it[3]] : [[], []]
-                typing:  it[4] != null ? [it[0], it[4]] : [[], []]
-                nextclade_tsv: it[5] != null ? [it[0], it[5].join(',')] : [[], []]
-                nextclade_dbname: it[6] != null ? [it[0], it[6].join(',')] : [[], []]
-                dbver: [it[0], params.flu_db_ver]
+    
+    ch_merge = ch_screen.join(ch_coverage)//.view()
+        .join(consensus_stats)//.view()
+        .join(ch_typing)//.view()
+        .join(ch_nextclade_tsv)//.view()
+        .join(ch_nextclade_dbs)//.view()
+        .view()
+
+//    ch_screen
+//         .join(ch_coverage, remainder: true)//.view()
+//         .join(consensus_stats, remainder: true)//.view()
+//         .join(ch_typing, remainder: true)//.view()
+//         .join(ch_nextclade_tsv, remainder: true)//.view()
+//         .join(ch_nextclade_dbs, remainder: true)//.view()
+    ch_merge.multiMap{
+        it -> 
+            screen:  it[1] != null ? [it[0], it[1]] : [[], []]
+            cov:  it[2] != null ? [it[0], it[2]] : [[], []]
+            stats:  it[3] != null ? [it[0], it[3]] : [[], []]
+            typing:  it[4] != null ? [it[0], it[4]] : [[], []]
+            nextclade_tsv: it[5] != null ? [it[0], it[5].join(',')] : [[], []]
+            nextclade_dbname: it[6] != null ? [it[0], it[6].join(',')] : [[], []]
+            dbver: [it[0], params.flu_db_ver]
         }.set{
             ch_input
         }
-  
+        
+    ch_input.stats.view()
     CONSENSUS_REPORT(
         ch_input.stats, 
         ch_input.cov, 

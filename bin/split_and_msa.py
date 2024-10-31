@@ -62,23 +62,23 @@ def cat_seqs(allseq_dict, outdir):
                     for t2 in tool_list: 
                         seq1 = allseqs_dict[sample][refid][seqid][t1]
                         seq2 = allseqs_dict[sample][refid][seqid][t2]
-                        # example key: 240112_S_I_008-S13-bwa_freebayes-segment_2-ref_accession_KX351456
+                        # example key: 230721_S_I_314-S87-bwa_freebayes-seg_1-ref_OQ367282
                         #header = [sample, t1, seqid, refid]
                         f.write(">" + refid + "\n")
                         f.write(refseq + "\n")
-                        f.write(">" + sample + "-" + t1 + "-" + seqid + "-ref_accession_" + refid + "\n")
+                        f.write(">" + sample + "-" + t1 + "-" + seqid + "-ref_" + refid + "\n")
                         f.write(seq1 + "\n")
-                        f.write(">" + sample + "-" + t2 + "-" + seqid + "-ref_accession_" + refid + "\n")
+                        f.write(">" + sample + "-" + t2 + "-" + seqid + "-ref_" + refid + "\n")
                         f.write(seq2 + "\n")
                 f.close()
 
 def convert(seqdict, allseq_dict, name_dict):
     #print(name_dict)
-    # example key: 240112_S_I_008-S13-bwa_freebayes-segment_2-ref_accession_KX351456
+    # example key: 230721_S_I_314-S87-bwa_freebayes-seg_1-ref_OQ367282
     for seqid in seqdict:
         #[('240112_S_I_008-S13', 'bwa_freebayes', 'segment_2', 'KX351456')]
        
-        match = re.findall("(^\w+-\w+?)-(\w+?)-(\w+?)-ref_accession_(\w+)", seqid)
+        match = re.findall("(^\w+-\w+?)-(\w+?)-(\w+?)-ref_(\w+)", seqid)
         g = match[0]
         #sampleid:ref:segid:tool
         sampleid = g[0]
@@ -111,7 +111,7 @@ if args.name_list is not None:
 
 ref = readFasta(args.fasta)
 allseqs_dict = multi_dict(4, str)
-for filename in glob.glob(args.indir + '/*.fasta'):
+for filename in glob.glob(args.indir + '/*.fa'):
     #print(filename)
     read_dict = readFasta(filename) 
     #print(read_dict)

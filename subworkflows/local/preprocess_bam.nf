@@ -9,6 +9,10 @@ include {
 } from '../../modules/nf-core/samtools/coverage/main'
 
 include {
+    SAMTOOLS_VIEW;
+} from '../../modules/nf-core/samtools/view/main'
+
+include {
     BAM_MARKDUPLICATES_PICARD;
 } from '../nf-core/bam_markduplicates_picard'
 
@@ -25,7 +29,7 @@ references:
                
 workflow PREPROCESS_BAM {   
     take:
-        bam //coordinate ordered bam
+        bam_bai //coordinate ordered bam
         fasta //[meta, fasta] reference used to produce bam_bai
         fai
         ref_header //[meta, txt] reference header
@@ -40,10 +44,20 @@ workflow PREPROCESS_BAM {
         remove  PCR and optical duplicates
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
+    SAMTOOLS_VIEW(bam_bai, fasta, [])
     
-  
+    SAMTOOLS_VIEW.out.bam
+        .join(fasta)
+        .join(fai)
+        .multiMap{
+            it ->
+                bam_bai: [it[0], it[1]]
+                fasta: [it[0], it[2]]
+                fai: [it[0], it[3]]
+        }
+        .set{ch_input}
     //all the duplicates will be removed from the output
-    BAM_MARKDUPLICATES_PICARD(bam, fasta, fai)
+    BAM_MARKDUPLICATES_PICARD(ch_input.bam_bai, ch_input.fasta, ch_input.fai)
     ch_bam_bai = BAM_MARKDUPLICATES_PICARD.out.bam.join( BAM_MARKDUPLICATES_PICARD.out.bai)
     
     SAMTOOLS_COVERAGE(ch_bam_bai)

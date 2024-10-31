@@ -45,13 +45,13 @@ def readFasta(fasta):
 
 def convert(seqdict, allseq_dict, name_dict, ref):
     #print(name_dict)
-    # example key: 240112_S_I_008-S13-bwa_freebayes-segment_2-ref_accession_KX351456
+    # example key: 240112_S_I_008-S13-bwa_freebayes-segment_2-ref_KX351456
     for seqid in seqdict:
         #[('240112_S_I_008-S13', 'bwa_freebayes', 'segment_2', 'KX351456')]
-        if "ref_accession" not in seqid:
+        if "ref_" not in seqid:
             ref[seqid] = seqdict[seqid]
             continue
-        match = re.findall("(^\w+-\w+?)-(\w+?)-(\w+?)-ref_accession_(\w+)", seqid)
+        match = re.findall("(^\w+-\w+?)-(\w+?)-(\w+?)-ref_(\w+)", seqid)
         g = match[0]
         #sampleid:ref:segid:tool
         sampleid = g[0]

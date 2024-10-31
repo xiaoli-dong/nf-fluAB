@@ -14,6 +14,7 @@ include {
     TABIX_TABIX
 } from '../../modules/nf-core/tabix/tabix'
 
+include { BCFTOOLS_INDEX } from '../../modules/local/bcftools/index/main'
 
 workflow VARIANTS_ILLUMINA {   
 
@@ -44,10 +45,14 @@ workflow VARIANTS_ILLUMINA {
             BCFTOOLS_SORT(FREEBAYES.out.vcf) //emit vcf.gz
             ch_versions.mix(BCFTOOLS_SORT.out.versions)
 
-            TABIX_TABIX(BCFTOOLS_SORT.out.vcf)  //emit [meta, tbi]
-            ch_versions.mix(TABIX_TABIX.out.versions)
+            // Index VCF files
+            BCFTOOLS_INDEX ( BCFTOOLS_SORT.out.vcf )
+            ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions.first())
 
-            vcf_tbi = BCFTOOLS_SORT.out.vcf.join(TABIX_TABIX.out.tbi)
+            // TABIX_TABIX(BCFTOOLS_SORT.out.vcf)  //emit [meta, tbi]
+            // ch_versions.mix(TABIX_TABIX.out.versions)
+
+            vcf_tbi = BCFTOOLS_SORT.out.vcf.join(BCFTOOLS_INDEX.out.tbi)
         }
         else if(params.variant_caller == 'bcftools'){
             bam_bai.join(fasta_fai).multiMap{
@@ -59,8 +64,21 @@ workflow VARIANTS_ILLUMINA {
             }
         
             BCFTOOLS_MPILEUP(ch_input.bam_interval, ch_input.fasta, false)
-            vcf_tbi = BCFTOOLS_MPILEUP.out.vcf.join(BCFTOOLS_MPILEUP.out.tbi)
-            ch_versions.mix(BCFTOOLS_MPILEUP.out.versions)
+            
+            BCFTOOLS_SORT(BCFTOOLS_MPILEUP.out.vcf) //emit vcf.gz
+            ch_versions.mix(BCFTOOLS_SORT.out.versions)
+
+            // Index VCF files
+            BCFTOOLS_INDEX ( BCFTOOLS_SORT.out.vcf )
+            ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions.first())
+
+            // TABIX_TABIX(BCFTOOLS_SORT.out.vcf)  //emit [meta, tbi]
+            // ch_versions.mix(TABIX_TABIX.out.versions)
+
+            vcf_tbi = BCFTOOLS_SORT.out.vcf.join(BCFTOOLS_INDEX.out.tbi)
+
+            // vcf_tbi = BCFTOOLS_MPILEUP.out.vcf.join(BCFTOOLS_MPILEUP.out.tbi)
+            // ch_versions.mix(BCFTOOLS_MPILEUP.out.versions)
         }
        
     emit:

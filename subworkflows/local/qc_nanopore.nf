@@ -72,9 +72,10 @@ workflow QC_NANOPORE {
         CONCAT_HOSTILE_STATS(HOSTILE_STATS.out.stats.map { cfg, stats -> stats }.collect().map { files -> tuple([id:"nanopore_reads.dehost_seqstats"], files)}, in_format, out_format ) 
 
     emit:
-        qc_reads
+       
         input_stats = INPUT_STATS.out.stats
         qc_stats = HOSTILE_STATS.out.stats
+        qc_reads
         versions = ch_versions
 
 }

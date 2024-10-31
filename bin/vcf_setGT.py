@@ -95,7 +95,7 @@ def main():
             reflen = len(record.REF[0])
             reffreq = ad_list[0]/dp
             
-            if reffreq > args.lower_allele_freq_limit:
+            if reffreq >= args.lower_allele_freq_limit:
                 ad_freq_dict[0] = reffreq
 
             i = 1 #alt index started with 1 in AD tag array

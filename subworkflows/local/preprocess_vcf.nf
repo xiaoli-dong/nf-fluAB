@@ -7,10 +7,19 @@ include {
 } from '../../modules/local/snpeff/snpeff'         
 
 include {
+    BCFTOOLS_FILTER as BCFTOOLS_FILTER_FIX; //removes sites within 7 bases of an indel.
     BCFTOOLS_FILTER as BCFTOOLS_FILTER_LOW_QUALITY_DEPTH;
     BCFTOOLS_FILTER as BCFTOOLS_FILTER_FRAMESHIFT;
 } from '../../modules/local/bcftools/filter'
 
+include {
+    SETGT;
+} from '../../modules/local/setgt'
+
+include {
+    TABIX_BGZIPTABIX;
+} from '../../modules/nf-core/tabix/bgziptabix'
+//https://content.csbs.utah.edu/~rogers/tch/archgen/topics/weur.slr.html
 workflow PREPROCESS_VCF {   
 
     take:
@@ -25,17 +34,23 @@ workflow PREPROCESS_VCF {
         //--check-ref w -m -any --output-type z  --write-index=tbi
         BCFTOOLS_NORM(vcf_tbi, fasta)
         ch_versions.mix(BCFTOOLS_NORM.out.versions)
+        BCFTOOLS_FILTER_FIX(BCFTOOLS_NORM.out.vcf)
+        ch_versions.mix(BCFTOOLS_FILTER_FIX.out.versions)
+
+        BCFTOOLS_FILTER_LOW_QUALITY_DEPTH(BCFTOOLS_FILTER_FIX.out.vcf)
 
         //annotate vcf
-        SNPEFF_SNPEFF(BCFTOOLS_NORM.out.vcf, snpeff_db, snpeff_config, snpeff_dataDir )
-        
+        SNPEFF_SNPEFF(BCFTOOLS_FILTER_LOW_QUALITY_DEPTH.out.vcf, snpeff_db, snpeff_config, snpeff_dataDir )
+ 
         //
-        BCFTOOLS_FILTER_LOW_QUALITY_DEPTH(SNPEFF_SNPEFF.out.vcf)
-        BCFTOOLS_FILTER_FRAMESHIFT(BCFTOOLS_FILTER_LOW_QUALITY_DEPTH.out.vcf)
+        //BCFTOOLS_FILTER_LOW_QUALITY_DEPTH(SNPEFF_SNPEFF.out.vcf)
+        BCFTOOLS_FILTER_FRAMESHIFT(SNPEFF_SNPEFF.out.vcf)
+        
+        SETGT(BCFTOOLS_FILTER_FRAMESHIFT.out.vcf.join(BCFTOOLS_FILTER_FRAMESHIFT.out.tbi))
+        TABIX_BGZIPTABIX(SETGT.out.vcf)
 
     emit:
-        vcf = BCFTOOLS_FILTER_FRAMESHIFT.out.vcf
-        tbi = BCFTOOLS_FILTER_FRAMESHIFT.out.tbi
+        vcf_tbi = TABIX_BGZIPTABIX.out.gz_tbi
         versions = ch_versions
         
 }

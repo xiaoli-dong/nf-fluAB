@@ -73,24 +73,15 @@ By default, the pipeline supports both short and long reads:
    <!-- TODO nf-core: Update the example "typical command" below used to run the pipeline -->
 
    ```bash
-   nextflow run xiaoli-dong/influenza --input samplesheet.csv --outdir <OUTDIR> -profile <docker/singularity/podman/shifter/charliecloud/conda/institute>
+   nextflow run xiaoli-dong/nf-fluAB --input samplesheet.csv --outdir <OUTDIR> -profile <docker/singularity/podman/shifter/charliecloud/conda/institute>
    ```
-<!--
-## Documentation
 
-The nf-fluAB pipeline comes with documentation about the pipeline [usage](https://nf-co.re/influenza/usage), [parameters](https://nf-co.re/influenza/parameters) and [output](https://nf-co.re/influenza/output).
--->
 ## Credits
 
 nf-fluAB was written by Xiaoli Dong. The illumina part of this pipeline was mainly based on Dr. Matthew Croxen's [flu pipeline]().
 
-Extensive support was provided from others on the scientific or technical input required for the pipeline:
-- Dr. Matthew Croxen
-- Dr. Tarah Lynch
-- Kanti Pabbaraju
-- Anita Wong
-- Linda Lee
-  
+Extensive support was provided from others on the scientific or technical input required for the pipeline: ProvLab Research team in Calgary
+
 <!-- TODO nf-core: If applicable, make list of people who have also contributed -->
 <!-- 
 ## Contributions and Support

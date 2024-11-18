@@ -26,18 +26,17 @@ By default, the pipeline supports both short and long reads:
 
 - Sequence quality check and quality control
   - Short reads
-    - Short Illumina reads quality checks ([FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
-    - Short read quality control ([fastp](https://github.com/OpenGene/fastp))
     - Short read statistics ([seqkit stats](https://bioinf.shenwei.me/seqkit/usage/#stats))
-    
+    - Short read quality control ([fastp](https://github.com/OpenGene/fastp)|[bbduk](https://github.com/BioInfoTools/BBMap/blob/master/sh/bbduk.sh))  
   - Long reads
-    - Nanopore long read quality checks ([NanoPlot](https://github.com/wdecoster/NanoPlot))
     - Nanopore long read adapter trimming ([Porechop](https://github.com/rrwick/Porechop))
     - Nanopore long read quality and length filter ([chopper](https://github.com/wdecoster/chopper))
     - Nanopore long read statistics ([seqkit stats](https://bioinf.shenwei.me/seqkit/usage/#stats))
+- De-hosting
+-   Remove host sequenes from short and long reads ([Hostile]([https://www.bioinformatics.babraham.ac.uk/projects/fastqc/](https://github.com/bede/hostile))) 
 - Assembly
-  - Short read assembly ([mash](https://github.com/marbl/Mash)|[bwa](https://github.com/lh3/bwa)|[samtools](https://github.com/samtools/samtools)|[freebayes](https://github.com/freebayes/freebayes)|[bcftools](https://github.com/samtools/bcftools)|[bioawk](https://github.com/lh3/bioawk))
-  - Long read assembly 
+  - Short read assembly ([mash](https://github.com/marbl/Mash)|[bwa](https://github.com/lh3/bwa)|[samtools](https://github.com/samtools/samtools)|[freebayes](https://github.com/freebayes/freebayes)|[Picard](https://github.com/broadinstitute/picard)|[bcftools](https://github.com/samtools/bcftools))
+  - Long read assembly ([mash](https://github.com/marbl/Mash)|[minimap2](https://github.com/lh3/minimap2)|[samtools](https://github.com/samtools/samtools)|[Clair3](https://github.com/HKU-BAL/Clair3)|[Picard](https://github.com/broadinstitute/picard)|[bcftools](https://github.com/samtools/bcftools))
 
 - Classification
   - Flu typing: [Blastn](https://blast.ncbi.nlm.nih.gov/doc/blast-help/downloadblastdata.html) search against flu typing database

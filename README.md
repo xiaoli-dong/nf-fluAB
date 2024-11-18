@@ -33,7 +33,7 @@ By default, the pipeline supports both short and long reads:
     - Nanopore long read quality and length filter ([chopper](https://github.com/wdecoster/chopper))
     - Nanopore long read statistics ([seqkit stats](https://bioinf.shenwei.me/seqkit/usage/#stats))
 - De-hosting
--   Remove host sequenes from short and long reads ([Hostile]([https://www.bioinformatics.babraham.ac.uk/projects/fastqc/](https://github.com/bede/hostile))) 
+  - Remove host sequenes from short and long reads ([Hostile]([https://www.bioinformatics.babraham.ac.uk/projects/fastqc/](https://github.com/bede/hostile)) 
 - Assembly
   - Short read assembly ([mash](https://github.com/marbl/Mash)|[bwa](https://github.com/lh3/bwa)|[samtools](https://github.com/samtools/samtools)|[freebayes](https://github.com/freebayes/freebayes)|[Picard](https://github.com/broadinstitute/picard)|[bcftools](https://github.com/samtools/bcftools))
   - Long read assembly ([mash](https://github.com/marbl/Mash)|[minimap2](https://github.com/lh3/minimap2)|[samtools](https://github.com/samtools/samtools)|[Clair3](https://github.com/HKU-BAL/Clair3)|[Picard](https://github.com/broadinstitute/picard)|[bcftools](https://github.com/samtools/bcftools))

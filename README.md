@@ -75,7 +75,10 @@ Summarize the analysis and generate the following reports:
 ### Build Influenza A and B fasta sequence database, mash sketch database, and snp database for snpEff 
 1. **Download fasta format sequecne data** and save it as sequences.fasta: Public available fasta sequence data downloaded from: https://www.ncbi.nlm.nih.gov/labs/virus/vssi/#/virus?SeqType_s=Nucleotide&VirusLineage_ss=taxid:197911&VirusLineage_ss=taxid:197912&VirusLineage_ss=taxid:197913&VirusLineage_ss=taxid:1511083&LabHost_s=include
 1. **Downlaod metadata** and save it as BVBRC_genome.csv from https://www.bv-brc.org/view/Taxonomy/11308#view_tab=genomes&filter=false 
-
+1. run the following command to build the database
+   ```
+   path_to_bin_directory/make_db.sh -i path_to/sequences.fasta -o outdir -c number_of_cpus -g path_to/BVBRC_genome.csv -d output_database_prefix
+   ```
 ### Typing database
 ### Nextclade database
 

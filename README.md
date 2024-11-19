@@ -8,7 +8,7 @@
 
 ### nf-fluAB Pipeline Overview
 
-The **nf-fluAB** pipeline processes high-throughput sequencing data and analyzes influenza A and B viral genomes through the following steps:
+The **nf-fluAB** pipeline processes NGS influenza A and B viral genome sequence data through the following steps:
 
 ### 1. Quality Control (QC) and De-hosting
 

@@ -72,10 +72,11 @@ Summarize the analysis and generate the following reports:
 - **Analysis report**
 - **Software version control report**
 
-### Pipeline Reference Databases
-- **Flu database**
-- **Typing database**
-- **Nextclade database**
+## Pipeline Reference Databases
+
+  ### Flu database
+  ### Typing database
+  ### Nextclade database
 
 ---
 

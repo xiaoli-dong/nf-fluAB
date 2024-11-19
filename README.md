@@ -72,10 +72,12 @@ Summarize the analysis and generate the following reports:
 
 ## Pipeline Reference Databases
 
-- **Flu database**
-- **Typing database**
-- **Nextclade database**
-- **Influenza A & B virus database for snpEff**
+### Flu database
+- **Download fasta format sequecne data** and save it as sequences.fasta: Public available fasta sequence data downloaded from: https://www.ncbi.nlm.nih.gov/labs/virus/vssi/#/virus?SeqType_s=Nucleotide&VirusLineage_ss=taxid:197911&VirusLineage_ss=taxid:197912&VirusLineage_ss=taxid:197913&VirusLineage_ss=taxid:1511083&LabHost_s=include
+- **Downlaod metadata** and save it as BVBRC_genome.csv from https://www.bv-brc.org/view/Taxonomy/11308#view_tab=genomes&filter=false 
+### Influenza A & B virus database for snpEff
+### Typing database
+### Nextclade database
 
 ---
 

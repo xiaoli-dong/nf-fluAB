@@ -55,9 +55,7 @@ Variants (mutations) are called from the aligned reads, identifying SNPs (single
 
 ### 5. Consensus Sequence Generation
 
-Generate consensus sequences for each viral segment based on the variant-calling step, allowing the reconstruction of the full viral genome or specific segments.
-
-- **Consensus Generation**: `bcftools`
+Generate consensus sequences using `bcftools` for each viral segment based on the variant-calling step, allowing the reconstruction of the full viral genome or specific segments.
 
 ### 6. Viral Segment Classification
 

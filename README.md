@@ -77,7 +77,11 @@ Summarize the analysis and generate the following reports:
 1. **Downlaod metadata** and save it as BVBRC_genome.csv from https://www.bv-brc.org/view/Taxonomy/11308#view_tab=genomes&filter=false 
 1. run the following command to build the database
    ```
+   #create conda environment for creating database
+   mamba create -n '$env_name' mmseqs2=15.6f452 mash=2.3 snpeff=5.2 vadr=1.6.4 biopython=1.84 -y
+   #running the script
    path_to_bin_directory/make_db.sh -i path_to/sequences.fasta -o outdir -c number_of_cpus -g path_to/BVBRC_genome.csv -d output_database_prefix
+   
    ```
 ### Typing database
 ### Nextclade database

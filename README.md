@@ -77,6 +77,7 @@ Summarize the analysis and generate the following reports:
   ### Flu database
   ### Typing database
   ### Nextclade database
+  ### Influenza A&B virus database for snpEff
 
 ---
 

@@ -20,7 +20,7 @@
 ## Pipeline summary
 
 <!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
-By default, the pipeline supports both short and long reads:
+nf-fluAB pipeline processes high-througput sequencing data in the following steps: 1) quality control 2) seek reference genome 3) mapping the NGS reads to the reference sequences 4) process mapping file and do the variant calling 5) generate viral segment consensus sequences 6) classify the segments
 
 - Sequence quality check and quality control
   - Short reads

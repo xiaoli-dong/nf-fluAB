@@ -119,3 +119,15 @@ For example, to run the pipeline with Docker, use the following command:
 ```bash
 nextflow run xiaoli-dong/nf-fluAB -profile test,docker
 ```
+### 4. Start Running Your Analysis
+
+To run the pipeline with your own input data, use the following command:
+
+```bash
+nextflow run xiaoli-dong/nf-fluAB --input samplesheet.csv --outdir <OUTDIR> -profile <docker/singularity/podman/shifter/charliecloud/conda/institute>
+```
+## Credits
+
+- **nf-fluAB** was written by **Xiaoli Dong**.
+- The Illumina part of the pipeline was primarily based on Dr. **Matthew Croxen**'s **flu pipeline**.
+- Extensive support was provided by the **ProvLab Research Team** in Calgary for scientific and technical input.

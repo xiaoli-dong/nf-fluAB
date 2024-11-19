@@ -37,7 +37,7 @@ Perform quality control checks on the raw sequencing data to assess its quality 
 
 ### 2. Reference Genome Search (Mash)
 
-Quality-controlled reads are "screened" against the influenza database using **Mash** to identify the most closely related reference genome from the database.
+Quality-controlled reads are "screened" against the influenza database using **Mash** to identify the most closely related reference genomes from the database.
 
 ### 3. NGS Reads Mapping and Mapping File Preprocessing
 

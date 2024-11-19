@@ -76,17 +76,17 @@
                 "flu_primers": {
                     "type": "string",
                     "description": "flu sequencing primer",
-                    "default": "/nfs/APL_Genomics/db/prod/fluAB/influenzaDB-2022-11-18/flu-primers.fa"
+                    "default": "/nfs/APL_Genomics/db/prod/fluAB/flu-primers.fa"
                 },
                 "hostile_human_ref_bowtie2": {
                     "type": "string",
                     "description": "hostile human genome index file",
-                    "default": "/nfs/APL_Genomics/db/prod/hostile/bowtie2_indexes/human-t2t-hla"
+                    "default": "/nfs/APL_Genomics/db/prod/hostile/bowtie2_indexes/human-t2t-hla.argos-bacteria-985_rs-viral-202401_ml-phage-202401"
                 },
                 "hostile_human_ref_minimap2": {
                     "type": "string",
                     "description": "hostile human reference genome for minimap2",
-                    "default": "/nfs/APL_Genomics/db/prod/hostile/minimap2_ref/human-t2t-hla.fa.gz"
+                    "default": "/nfs/APL_Genomics/db/prod/hostile/minimap2_ref/human-t2t-hla.argos-bacteria-985_rs-viral-202401_ml-phage-202401.fa.gz"
                 }
             }
         },
@@ -103,12 +103,12 @@
                 "flu_db_msh": {
                     "type": "string",
                     "description": "flu database mash sketch file",
-                    "default": "/nfs/APL_Genomics/db/prod/fluAB/influenzaDB-2022-11-18/influenzaDB-2022-11-18.msh"
+                    "default": "/nfs/APL_Genomics/db/prod/fluAB/influenzaDB-2024-08-26/influenzaDB-2024-08-26.msh"
                 },
                 "flu_db_fasta": {
                     "type": "string",
                     "description": "Fasta format flu database file",
-                    "default": "/nfs/APL_Genomics/db/prod/fluAB/influenzaDB-2022-11-18/influenzaDB-2022-11-18.fasta"
+                    "default": "/nfs/APL_Genomics/db/prod/fluAB/influenzaDB-2024-08-26/influenzaDB-2024-08-26.fasta"
                 },
                 "mashthreshold": {
                     "type": "number",
@@ -180,12 +180,12 @@
                 "typing_db": {
                     "type": "string",
                     "description": "typing database",
-                    "default": "/nfs/APL_Genomics/db/prod/fluAB/influenzaDB-2022-11-18/typing.fa"
+                    "default": "/nfs/APL_Genomics/db/prod/fluAB/typing.fa"
                 },
                 "nextclade_dataset_base": {
                     "type": "string",
                     "description": "nextclade database base directory",
-                    "default": "/nfs/APL_Genomics/db/prod/fluAB/influenzaDB-2022-11-18/nextclade"
+                    "default": "/nfs/APL_Genomics/db/prod/fluAB/nextclade"
                 },
                 "minblastident": {
                     "type": "integer",

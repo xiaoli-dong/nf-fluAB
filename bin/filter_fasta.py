@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import argparse
 import csv
 from collections import defaultdict
@@ -24,7 +25,7 @@ def filterFasta(file_path, minlen, maxlen, maxambigs):
                     # Save the last sequence
                     # remove all the whitespace characters (space, tab, newlines)
                     sequence = ''.join(sequence_lines)
-                    filter(header, sequence, minlen, maxlen, maxambigs)
+                    filter(header, sequence, int(minlen), int(maxlen), int(maxambigs))
                        
                 header = line[1:]  # Remove the '>' character
                 sequence_lines = []
@@ -34,7 +35,7 @@ def filterFasta(file_path, minlen, maxlen, maxambigs):
         # Save the last sequence
         if header:
             sequence = ''.join(sequence_lines)
-            filter(header, sequence, minlen, maxlen, maxambigs)
+            filter(header, sequence, int(minlen), int(maxlen), int(maxambigs))
            
         
     #return sequences

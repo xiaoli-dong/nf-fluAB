@@ -28,6 +28,7 @@ def readNames(nfile):
             g = match[0]
             for name in g[1].split(','):
                 name_dict[name] = g[0]
+    print(name_dict)
     return name_dict
 
 def readFasta(fasta):
@@ -79,6 +80,7 @@ def convert(seqdict, allseq_dict, name_dict):
         #[('240112_S_I_008-S13', 'bwa_freebayes', 'segment_2', 'KX351456')]
        
         match = re.findall("(^\w+-\w+?)-(\w+?)-(\w+?)-ref_(\w+)", seqid)
+       
         g = match[0]
         #sampleid:ref:segid:tool
         sampleid = g[0]
@@ -87,7 +89,7 @@ def convert(seqdict, allseq_dict, name_dict):
         #print(sampleid)
         #sampleid:refid:segid:tool:
         allseq_dict[sampleid][g[3]][g[2]][g[1]] = seqdict[seqid]
-
+    print(allseq_dict)
     return allseq_dict
 
 # Initialize parser

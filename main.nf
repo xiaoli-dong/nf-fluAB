@@ -24,13 +24,14 @@ else if (params.platform == 'nanopore') {
 //
 workflow NFCORE_INFLUENZA {
 
-    
+   
     if (params.platform == 'illumina') {
         ILLUMINA ()
     }
     else if (params.platform == 'nanopore') {
         NANOPORE ()
     }
+    
 }
 
 /*

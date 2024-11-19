@@ -41,17 +41,17 @@ Quality-controlled reads are "screened" against the influenza database using **M
 
 ### 3. NGS Reads Mapping and Mapping File Preprocessing
 
-Align the high-throughput sequencing reads to the selected reference genome using a suitable read aligner, enabling the identification of the viral genome sequences.
+Align quality controlled short or long reads to the selected reference genome using a suitable read aligner and Process the alignment files to generate a clean mapping file.
 
 - **Short Reads Mapping**: `bwa`, `minimap2`, `samtools`, `Picard`
 - **Long Reads Mapping**: `minimap2`, `samtools`, `Picard`
 
 ### 4. Variant Calling and VCF File Preprocessing
 
-Process the alignment files to generate a clean mapping file. Variants (mutations) are then called from the aligned reads, identifying SNPs (single nucleotide polymorphisms) and indels (insertions and deletions) in the viral genome.
+ Variants (mutations) are then called from the aligned reads, identifying SNPs (single nucleotide polymorphisms) and indels (insertions and deletions) in the viral genome. normalize the vcf files and filter out the variants which can cause frameshift
 
-- **Short Read Variant Calling**: `freebayes`, `bcftools`
-- **Long Read Variant Calling**: `Clair3`
+- **Short Read Variant Calling**: `freebayes`, `bcftools`, `snpEff`
+- **Long Read Variant Calling**: `Clair3`, `bcftools`, `snpEff`
 
 ### 5. Consensus Sequence Generation
 
@@ -61,7 +61,7 @@ Generate consensus sequences for each viral segment based on the variant-calling
 
 ### 6. Viral Segment Classification
 
-Classify and annotate the individual viral segments (e.g., HA, NA, PB2, PB1, etc.) to assign their correct genomic positions, helping to further characterize the influenza strain.
+Classify and annotate the individual viral segments (e.g., HA, NA, PB2, PB1, etc.)
 
 - **Flu Typing**: `blastn` search against a flu typing database
 - **Clade Assignment**: `nextclade`

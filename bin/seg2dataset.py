@@ -13,6 +13,8 @@ def get_flu_typedata(type_str):
         "H3": "flu_h3n2_ha",
         "Victoria": "flu_vic_ha",
         "Yamagata": "flu_yam_ha",
+        #h5nx input dataset is downloaded from https://github.com/nextstrain/nextclade_data/tree/master/data/community/moncla-lab/iav-h5/ha
+        "H5": "flu_h5nx_ha"
     }
     # get() method of dictionary data type returns
     # value of passed argument if it is present

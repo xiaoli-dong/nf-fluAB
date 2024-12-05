@@ -59,7 +59,7 @@ else
     echo "mamba create -n '$env_name' mmseqs2=15.6f452 mash=2.3 snpeff=5.2 vadr=1.6.4 biopython=1.84 -y"
     exit 0
 fi
- 
+#pip install requests Bio
 # Check if the environment is activated
 if [[ "$CONDA_DEFAULT_ENV" != "$env_name" ]]; then
     echo "Activating the '$env_name' Conda environment..."
@@ -75,15 +75,18 @@ fi
 mkdir -p "$outdir"
 
 # ---------------------------------------------
-# Step 1: Filter FASTA Sequences
-echo "Filtering FASTA sequences..."
-if ! [ -f "${outdir}/${prefix}.filter.fasta" ]; then
-    python "${bindir}/filter_fasta.py" \
-        --fasta "$input_fasta" \
+# Step 1: Filter and reformat FASTA Sequences
+#filter sequeces: too short, too long, has ambiguour bases, has not metadata
+echo "Filtering and reformatting FASTA sequences..."
+if ! [ -f "${outdir}/${prefix}.reformat.fasta" ]; then
+    
+    python ${bindir}/reformatSeqs.py \
+        --fasta sequences.fasta \
         --minlen 700 \
         --maxlen 3000 \
         --maxambigs 0 \
-        > "${outdir}/${prefix}.filter.fasta"
+        --bvbrc BVBRC_genome.csv \
+        > "${outdir}/${prefix}.reformat.fasta" 2> reformatSeq.log.txt
 fi
 
 # ---------------------------------------------
@@ -100,11 +103,17 @@ if ! [ -f "${outdir}/${prefix}.cluster0.99_rep_seq.fasta" ]; then
         --cluster-mode 2 \
         --cluster-reassign 1 \
         -v 2 \
-        "${outdir}/${prefix}.filter.fasta" \
+        "${outdir}/${prefix}.reformat.fasta" \
         "${outdir}/${prefix}.cluster0.99" \
         tmp \
         >& "${outdir}/${prefix}.cluster0.99.log.txt"
 fi
+
+# python ${bindir}/filter_singleton.py \
+#     --fasta output/sequence.cluster0.99_rep_seq.fasta \
+#     --tsv output/sequence.cluster0.99_cluster.tsv \
+#     > output/sequence.cluster0.99_rep_seq.singularity_out.fasta \
+#     2> filter_singleton.log.txt
 
 # ---------------------------------------------
 # Step 3: Trim Terminal Ambiguities
@@ -159,20 +168,29 @@ if ! [ -f "${outdir}/${outdb_prefix}_rep_seq.fasta" ]; then
         tmp
 fi
 
+mv ${outdir}/${outdb_prefix}_rep_seq.fasta ${outdir}/${outdb_prefix}.fasta
 # ---------------------------------------------
 # Step 7: Mash Sketch
 echo "Performing Mash sketch..."
-if ! [ -f "${outdir}/${outdb_prefix}_rep_seq.msh" ]; then
+if ! [ -f "${outdir}/${outdb_prefix}.msh" ]; then
     mash sketch \
-        -i "${outdir}/${outdb_prefix}_rep_seq.fasta" \
-        -o "${outdir}/${outdb_prefix}_rep_seq.msh"
+        -i "${outdir}/${outdb_prefix}.fasta" \
+        -o "${outdir}/${outdb_prefix}.msh"
 fi
 
+if ! [ -d "${outdir}/${outdb_prefix}" ]; then
+    mkdir ${outdir}/${outdb_prefix}
+fi
+
+cp ${outdir}/${outdb_prefix}.fasta ${outdir}/${outdb_prefix}/sequences.fasta
+cp ${outdir}/${outdb_prefix}.msh ${outdir}/${outdb_prefix}/sequences.msh
+
+# start to build database for snpEff
 # ---------------------------------------------
 # Step 8: Extract Genome IDs
 echo "Extracting genome IDs..."
 if ! [ -f "${outdir}/genome_ids.txt" ]; then
-    grep ">" "${outdir}/${outdb_prefix}_rep_seq.fasta" | cut -f1 -d$' ' | cut -c 2- > "${outdir}/genome_ids.txt"
+    grep ">" "${outdir}/${outdb_prefix}.fasta" | cut -f1 -d$' ' | cut -c 2- > "${outdir}/genome_ids.txt"
 fi
 
 # ---------------------------------------------
@@ -180,17 +198,18 @@ fi
 echo "Downloading GenBank files..."
 if ! [ -d "${outdir}/gb_dir" ]; then
     mkdir "${outdir}/gb_dir"
-    python "${bindir}/download_genbank.py" \
-        --input "${outdir}/genome_ids.txt" \
-        --outdir "${outdir}/gb_dir"
 fi
+python "${bindir}/download_genbank.py" \
+    --input "${outdir}/genome_ids.txt" \
+    --outdir "${outdir}/gb_dir"
+
 
 # ---------------------------------------------
 # Step 10: Concatenate GenBank Files
 echo "Concatenating GenBank files..."
-if ! [ -f "${outdir}/data/influenza_a_b/genes.gbk" ]; then
-    mkdir -p "${outdir}/data/influenza_a_b"
-    cat "${outdir}/gb_dir"/*.gb > "${outdir}/data/influenza_a_b/genes.gbk"
+if ! [ -f "${outdir}/data/fluab/genes.gbk" ]; then
+    mkdir -p "${outdir}/data/fluab"
+    cat "${outdir}/gb_dir"/*.gb > "${outdir}/data/fluab/genes.gbk"
 fi
 
 # ---------------------------------------------
@@ -200,8 +219,8 @@ perl -ne '
     BEGIN { @ids = (); }
     chomp; push(@ids, $_);
     END {
-        print "influenza_a_b.genome : influenza AB\n";
-        print "\tinfluenza_a_b.chromosomes: ";
+        print "fluab.genome : influenza AB\n";
+        print "\tfluab.chromosomes: ";
         print join(", ", @ids);
         print "\n";
     }
@@ -211,9 +230,10 @@ perl -ne '
 # Step 12: Convert Coding Sequences to GTF Format
 echo "Converting coding sequences to GTF format..."
 python "${bindir}/coding2gtf22.py" \
-    --input "${outdir}/${outdb_prefix}_rep_seq.fasta" \
-    --output "${outdir}/data/influenza_a_b/genes.gtf"
+    --input "${outdir}/${outdb_prefix}.fasta" \
+    --output "${outdir}/data/fluab/genes.gtf"
 
+cp ${outdir}/${outdb_prefix}/sequences.fasta  ${outdir}/data/fluab/sequences.fa 
 # ---------------------------------------------
 # Step 13: Build SNP Database with snpEff
 echo "Building SNP database with snpEff..."
@@ -222,7 +242,7 @@ snpEff build \
     -c "${outdir}/snpEff.config" \
     -noCheckCds -noCheckProtein \
     -maxErrorRate 0.2 \
-    influenza_a_b &> "${outdir}/log.gtf.txt"
+    fluab &> "${outdir}/log.gtf.txt"
 
 # ---------------------------------------------
 # Deactivate Conda Environment

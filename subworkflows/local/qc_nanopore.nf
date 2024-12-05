@@ -24,7 +24,8 @@ include {
     CSVTK_CONCAT as CONCAT_CHOPPER_STATS;
     CSVTK_CONCAT as CONCAT_HOSTILE_STATS;
 } from '../../modules/nf-core/csvtk/concat/main'
-
+//fastplong
+//--do_read_splitting, --detect_mid_strand_adapter, --detect_mid_strand_barcodes, --require_barcodes_both_end
 workflow QC_NANOPORE {
 
     take:

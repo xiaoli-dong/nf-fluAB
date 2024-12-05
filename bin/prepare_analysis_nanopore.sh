@@ -1,5 +1,15 @@
 #!/bin/bash
+mkdir fastq
+#concatnate the fastq for each samples
+for var in {1..9}; do  
+  echo $var; 
+  cat */*/fastq_pass/barcode0$var/*.fastq.gz > fastq/barcode$var.fastq.gz; 
+done
 
+for var in {10..96}; do  
+  echo $var; 
+  cat */*/fastq_pass/barcode$var/*.fastq.gz > fastq/barcode$var.fastq.gz; 
+done
 #pipeline launcher has prepred fastq direcotry
 # Create directories for analysis
 mkdir -p analysis_apl/raw_data
@@ -40,6 +50,7 @@ ls -l *.fastq.gz | while read -r line; do
   " "$file" >> ../samplesheet.csv
 done
 cp /nfs/APL_Genomics/apps/production/influenza/slurm_nanopore.batch . 
+cp /nfs/APL_Genomics/apps/production/influenza/fluab_routine.config .
 
 cd -
 

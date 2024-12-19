@@ -44,6 +44,8 @@ ls -l *R1_* | while read -r line; do
     }
   " "$file" >> ../samplesheet.csv
 done
-cp /nfs/APL_Genomics/apps/production/influenza/slurm_illumina.batch . 
 
+cd ..
+cp /nfs/APL_Genomics/apps/production/influenza/slurm_illumina.batch . 
+cp /nfs/APL_Genomics/apps/production/influenza/fluab_routine.config .
 cd -

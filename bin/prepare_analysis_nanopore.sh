@@ -49,6 +49,7 @@ ls -l *.fastq.gz | while read -r line; do
     }
   " "$file" >> ../samplesheet.csv
 done
+cd ..
 cp /nfs/APL_Genomics/apps/production/influenza/slurm_nanopore.batch . 
 cp /nfs/APL_Genomics/apps/production/influenza/fluab_routine.config .
 

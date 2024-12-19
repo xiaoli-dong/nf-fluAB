@@ -189,9 +189,9 @@ cp ${outdir}/${outdb_prefix}.msh ${outdir}/${outdb_prefix}/sequences.msh
 # ---------------------------------------------
 # Step 8: Extract Genome IDs
 echo "Extracting genome IDs..."
-if ! [ -f "${outdir}/genome_ids.txt" ]; then
-    grep ">" "${outdir}/${outdb_prefix}.fasta" | cut -f1 -d$' ' | cut -c 2- > "${outdir}/genome_ids.txt"
-fi
+#if ! [ -f "${outdir}/genome_ids.txt" ]; then
+grep ">" "${outdir}/${outdb_prefix}.fasta" | cut -f1 -d$' ' | cut -c 2- > "${outdir}/genome_ids.txt"
+#fi
 
 # ---------------------------------------------
 # Step 9: Download GenBank Files
@@ -207,10 +207,14 @@ python "${bindir}/download_genbank.py" \
 # ---------------------------------------------
 # Step 10: Concatenate GenBank Files
 echo "Concatenating GenBank files..."
-if ! [ -f "${outdir}/data/fluab/genes.gbk" ]; then
-    mkdir -p "${outdir}/data/fluab"
-    cat "${outdir}/gb_dir"/*.gb > "${outdir}/data/fluab/genes.gbk"
+if [ -f "${outdir}/data/fluab/genes.gbk" ]; then
+    rm -rf "${outdir}/data/fluab/"
 fi
+
+#if ! [ -f "${outdir}/data/fluab/genes.gbk" ]; then
+mkdir -p "${outdir}/data/fluab"
+cat "${outdir}/gb_dir"/*.gb > "${outdir}/data/fluab/genes.gbk"
+#fi
 
 # ---------------------------------------------
 # Step 11: Prepare snpEff Config

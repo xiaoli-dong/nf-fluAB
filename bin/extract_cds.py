@@ -43,20 +43,24 @@ def extract(header, sequence, cds_coords, minlen, maxlen, maxambigs):
     subseq=''
 
     if seqid in cds_coords:
-        coord = cds_coords[seqid]
+        """ coord = cds_coords[seqid]
         pattern = r'^(\d+?)\..(\d+?)\:([+-])'
         match = re.search(pattern, coord)
         seq_from = int(match.group(1))
         seq_to = int(match.group(2))
-        strand = match.group(3)
+        strand = match.group(3) """
 
-        if strand == '-':
-            start_index = seq_to -1
-            end_index = seq_from
+        if cds_coords[seqid]['strand'] == '-':
+            # start_index = seq_to -1
+            # end_index = seq_from
+            start_index = cds_coords[seqid]['seq_to'] -1 
+            end_index = cds_coords[seqid]['seq_from']
             
-        elif strand == '+':
-            start_index = seq_from -1
-            end_index = seq_to
+        elif cds_coords[seqid]['strand'] == '+':
+            # start_index = seq_from -1
+            # end_index = seq_to
+            start_index = cds_coords[seqid]['seq_from'] -1 
+            end_index = cds_coords[seqid]['seq_to']
 
         subseq = sequence[start_index:end_index]
         total_atcg_count = len([b for b in subseq if b in allowed_bases])
@@ -70,28 +74,42 @@ def extract(header, sequence, cds_coords, minlen, maxlen, maxambigs):
 
 def parseSGM(sgm):
     
-    cds_coord_pass = defaultdict(str)
-    pattern = r'^\d+\.1\.1\s+.*'
+    cds_coord_pass = defaultdict(dict)
+    #pattern = r'^\d+\.1\.1\s+.*'
    
     with open (sgm, 'r+') as in_f:
       
         for line in in_f:
 
-            match = re.search(pattern, line)
-            if match:
+            # match = re.search(pattern, line)
+            # if match:
+            if not line.startswith("#"):
                 #print("Pattern found:", match.group())
                 line_list = line.split()
-                seq_from = line_list[10]
-                seq_to = line_list[11]
+                seq_from = int(line_list[10])
+                seq_to = int(line_list[11])
+                sgm_len = int(line_list[14])
+
                 strand = line_list[15]
                 trc = line_list[16]
-
                 pf = line_list[3]
                 seq_name = line_list[1]
 
-                if trc == 'no' and pf == 'PASS':
+                if trc == 'no' and pf == 'PASS' :
                     #print(line)
-                    cds_coord_pass[seq_name] = seq_from + '..' + seq_to + ':' + strand
+                    if seq_name not in cds_coord_pass :
+                        #cds_coord_pass[seq_name] = seq_from + '..' + seq_to + ':' + strand
+                        cds_coord_pass[seq_name]['seq_from'] = seq_from
+                        cds_coord_pass[seq_name]['seq_to'] = seq_to
+                        cds_coord_pass[seq_name]['strand'] = strand
+                        cds_coord_pass[seq_name]['sgm_len'] = sgm_len
+
+                    elif cds_coord_pass[seq_name]['sgm_len'] < sgm_len:
+                        #cds_coord_pass[seq_name] = seq_from + '..' + seq_to + ':' + strand
+                        cds_coord_pass[seq_name]['seq_from'] = seq_from
+                        cds_coord_pass[seq_name]['seq_to'] = seq_to
+                        cds_coord_pass[seq_name]['strand'] = strand
+                        cds_coord_pass[seq_name]['sgm_len'] = sgm_len   
     return cds_coord_pass
                
 

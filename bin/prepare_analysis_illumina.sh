@@ -1,12 +1,52 @@
 #!/bin/bash
 
-# Create directories for analysis
-mkdir -p analysis_apl/raw_data
+# Function to display usage instructions
+usage() {
+  echo "Usage: $0 -r <run_name> -o <output_directory>"
+  echo
+  echo "This script processes raw sequencing data files for the specified 'run'."
+  echo "-r <run_name>         The name of the run to be processed."
+  echo "-o <output_directory> The directory to store the processed files (default: ./analysis_apl)"
+  echo
+  echo "Example:"
+  echo "  $0 -r my_run_name -o /path/to/output"
+  exit 1
+}
 
-# Initial 'run' value from current working directory
-run=$(basename "$PWD")  # Set 'run' variable to the current directory name
+# Default output directory
+output_dir="./analysis_apl"
 
-echo "Processing files in directory: $run"
+# Parse command-line arguments using getopts
+while getopts ":r:o:" opt; do
+  case $opt in
+    r)
+      run=$OPTARG
+      ;;
+    o)
+      output_dir=$OPTARG
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      usage
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      usage
+      ;;
+  esac
+done
+
+# Ensure the 'run' parameter is provided
+if [ -z "$run" ]; then
+  echo "Error: 'run' parameter is required."
+  usage
+fi
+
+# Create directories for analysis (based on output_dir)
+mkdir -p "$output_dir/raw_data"
+
+echo "Processing files for run: $run"
+echo "Output directory: $output_dir"
 
 # Loop through fastq.gz files in the ./fastq directory
 for x in $(find ./fastq -name "*.fastq.gz"); do
@@ -21,16 +61,15 @@ for x in $(find ./fastq -name "*.fastq.gz"); do
   # Remove the 'run' prefix from the file name (if present)
   fname=${fname/$run\_/}
   
-  # Copy the file to the new directory
-  cp "$x" "./analysis_apl/raw_data/$run-$fname"
+  # Copy the file to the new directory (output_dir/raw_data)
+  cp "$x" "$output_dir/raw_data/$run-$fname"
 done
 
-
 # Change to the directory where the files were copied
-cd analysis_apl/raw_data
+cd "$output_dir/raw_data"
 
 # Print the header once before processing any files
-echo "sample,fastq_1,fastq_2,long_fastq" > ../samplesheet.csv
+echo "sample,fastq_1,fastq_2,long_fastq" > "../samplesheet.csv"
 
 # Loop through the *R1* files and process each one with Perl
 ls -l *R1_* | while read -r line; do
@@ -42,10 +81,11 @@ ls -l *R1_* | while read -r line; do
     if (\$ARGV[0] =~ /.*?${run}-(\d+)(\S+?)R1(\S+)/) {
       print \"${run}-S\$1,./raw_data/${run}-\$1\$2R1\$3,./raw_data/${run}-\$1\$2R2\$3,NA\n\";
     }
-  " "$file" >> ../samplesheet.csv
+  " "$file" >> "../samplesheet.csv"
 done
 
 cd ..
+
 cp /nfs/APL_Genomics/apps/production/influenza/slurm_illumina.batch . 
-cp /nfs/APL_Genomics/apps/production/influenza/fluab_routine.config .
+cp /nfs/APL_Genomics/apps/production/influenza/fluab_routine.config . 
 cd -

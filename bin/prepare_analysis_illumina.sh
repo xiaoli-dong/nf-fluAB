@@ -86,6 +86,9 @@ done
 
 cd ..
 
-cp /nfs/APL_Genomics/apps/production/influenza/slurm_illumina.batch . 
-cp /nfs/APL_Genomics/apps/production/influenza/fluab_routine.config . 
+# Copy the batch and config files
+script_dir=$(dirname "$0")
+cp ${script_dir}/slurm_illumina.batch . 
+cp ${script_dir}/fluab_routine.config .
+
 cd -

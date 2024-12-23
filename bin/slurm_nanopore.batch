@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#SBATCH --job-name=fluAB_nanopore
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --time=3-00:00:00
+#SBATCH --mem=32G
+#SBATCH --partition=vm-cpu
+#SBATCH -o slurm-%j.out
+#SBATCH -e slurm-%j.err
+#SBATCH --mail-user=CHANGE_TO_YOUR_EMAIL
+#SBATCH --mail-type=ALL
+
+# ---------------------------------------------------------------------
+
+# ACTIVATE conda
+eval "$(conda shell.bash hook)"
+conda activate
+
+conda activate nf-core 
+echo "Current working directory: `pwd`"
+echo "Starting run at: `date`"
+# ---------------------------------------------------------------------
+nextflow run /nfs/APL_Genomics/apps/production/influenza/nf-fluAB/main.nf -profile singularity --outdir results -c fluab_routine.config --platform nanopore --mapping_tool minimap2 --variant_caller clair3 -resume
+
+# ---------------------------------------------------------------------
+echo "Job finished with exit code $? at: `date`"
+conda deactivate 
+
+# ---------------------------------------------------------------------

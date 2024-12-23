@@ -7,16 +7,16 @@ usage() {
   echo "This script processes raw sequencing data files for the specified 'run'."
   echo "-r <run_name>           The name of the run to be processed."
   echo "-o <output_directory>   The directory to store the processed files (default: ./analysis_apl)"
-  echo "-b <barcode_range>      Range of barcodes to process (default: 1-96)"
+  echo "-b <barcode_range>      Range of barcodes to process (default: 01-96)"
   echo
   echo "Example:"
-  echo "  $0 -r my_run_name -o /path/to/output -b 1-96"
+  echo "  $0 -r my_run_name -o /path/to/output -b 01-96"
   exit 1
 }
 
 # Default values for the options
 output_dir="./analysis_apl"
-barcode_range="1-96"
+barcode_range="01-96"
 
 # Parse command-line arguments using getopts
 while getopts ":r:o:b:" opt; do
@@ -47,8 +47,12 @@ if [ -z "$run" ]; then
   usage
 fi
 
-# Ensure the output directory exists
-mkdir -p "$output_dir/fastq"
+# Ensure the output directory 
+if [ ! -d fastq ]; then
+    echo "Directory does not exist. Creating it now."
+    mkdir -p fastq  # The -p flag ensures that parent directories are created if they don't exist.
+fi
+
 mkdir -p "$output_dir/raw_data"
 
 echo "Processing files for run: $run"
@@ -56,22 +60,23 @@ echo "Output directory: $output_dir"
 echo "Barcode range: $barcode_range"
 
 # Concatenate the fastq files for each sample
-# Use a loop based on the barcode range (1 to 96 by default)
+# Use a loop based on the barcode range (01 to 96 by default)
 IFS="-" read -r start_barcode end_barcode <<< "$barcode_range"
-for var in $(seq "$start_barcode" "$end_barcode"); do
-  # If the barcode has a leading zero (e.g., barcode01, barcode02, ...), we need to handle this for both single and double-digit barcodes
-  echo "Processing barcode $var"
-  
-  # Check if the barcode has a leading zero (1-9) or not (10-96) and process accordingly
-  if [ $var -lt 10 ]; then
-    cat */*/fastq_pass/barcode0$var/*.fastq.gz > "$output_dir/fastq/barcode0$var.fastq.gz"
-  else
-    cat */*/fastq_pass/barcode$var/*.fastq.gz > "$output_dir/fastq/barcode$var.fastq.gz"
-  fi
+echo $start_barcode
+
+for dir in $(find ./ -type d -name fastq_pass); do 
+  echo $dir;
+  for (( i=$start_barcode; i<=$end_barcode; i++ )); do
+    var=$(printf "%02d\n" $i)
+    echo "Processing barcode $dir/barcode$var"
+    cat $dir/barcode${var}/*.fastq.gz > "fastq/barcode${var}.fastq.gz";
+  done 
 done
 
+
 # Loop through fastq.gz files in the fastq directory
-for x in "$output_dir"/fastq/barcode*.fastq.gz; do
+for x in fastq/barcode*.fastq.gz; do
+  echo $x
   fname=${x/*\//}  # Extract file name from the full path
   
   # Print debugging information
@@ -95,7 +100,7 @@ ls -l *.fastq.gz | while read -r line; do
   
   # Run the Perl one-liner with the updated 'run' variable
   perl -e "
-    if (\$ARGV[0] =~ /.*?${run}-barcode0?(\d+).fastq.gz/) {
+    if (\$ARGV[0] =~ /.*?${run}-barcode(\d+).fastq.gz/) {
       print \"${run}-S\$1,NA,NA,./raw_data/${run}-barcode\$1.fastq.gz\n\";
     }
   " "$file" >> "../samplesheet.csv"
@@ -103,7 +108,8 @@ done
 
 cd ..
 # Copy the batch and config files
-cp /nfs/APL_Genomics/apps/production/influenza/slurm_nanopore.batch . 
-cp /nfs/APL_Genomics/apps/production/influenza/fluab_routine.config .
+script_dir=$(dirname "$0")
+cp ${script_dir}/slurm_nanopore.batch . 
+cp ${script_dir}/fluab_routine.config .
 
 cd -

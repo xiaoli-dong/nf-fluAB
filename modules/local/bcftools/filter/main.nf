@@ -30,15 +30,21 @@ process BCFTOOLS_FILTER {
                     args.contains("--output-type z") || args.contains("-Oz") ? "vcf.gz" :
                     args.contains("--output-type v") || args.contains("-Ov") ? "vcf" :
                     "vcf"
-
+    
     if ("$vcf" == "${prefix}.${extension}") error "Input and output names are the same, set prefix in module configuration to disambiguate!"
-
+   
     """
-    bcftools filter \\
-        --output ${prefix}.${extension} \\
-        --threads ${task.cpus} \\
-        $args \\
-        $vcf
+    # Check if the VCF file has variant entries (lines that do not start with '#')
+    if [ \$(grep -v '^#' "$vcf" | wc -l) -gt 0 ]; then
+        bcftools filter \\
+            --output ${prefix}.${extension} \\
+            --threads ${task.cpus} \\
+            $args \\
+            $vcf
+    else
+        touch ${prefix}.${extension}
+        
+    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

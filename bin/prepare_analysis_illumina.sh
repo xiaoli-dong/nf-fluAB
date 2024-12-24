@@ -41,7 +41,15 @@ if [ -z "$run" ]; then
   echo "Error: 'run' parameter is required."
   usage
 fi
-
+# Ensure the output directory 
+if [ ! -d fastq ]; then
+    echo "Directory does not exist. Creating it now."
+    mkdir -p fastq  # The -p flag ensures that parent directories are created if they don't exist.
+    echo "copy fastq files"
+    for dir in $(find . -type d -name Fastq); do 
+      find $dir -type f -name "*.fastq.gz" ! -name 'Undetermined*' -exec cp {} fastq \;
+    done
+fi
 # Create directories for analysis (based on output_dir)
 mkdir -p "$output_dir/raw_data"
 

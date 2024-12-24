@@ -2,6 +2,7 @@
 
 import argparse
 import csv, operator
+import sys
 
 def main():
     description = """
@@ -42,6 +43,7 @@ def main():
     f = open(f"{args.output}", "w", encoding="utf-8")
     #segments = {"PB1": False, "PB2": False, "PA": False, "HA": False, "NP": False, "NA": False, "M": False, "NS": False}
     segments = {}
+    subtype = {}
     header = ['identity', 'shared-hashes', 'median-multiplicity', 'p-value', 'query-ID', 'query-comment']
     f.writelines("\t".join(header) + "\n")
     
@@ -62,13 +64,22 @@ def main():
             # parse query-comment
             fields = line[5].split("|")
             segName = fields[2]
-            segType = fields[3]
-            key = segName + "_" + segType
-            # only keep the best hit for each type of the segment
-            #if not segments[segName]:
-            if shared_hashes >= args.min_shared_hashes and key not in segments:
-                segments[key] = True
-                f.writelines("\t".join(line) + "\n")
+            subType = fields[3]
+            qid = line[4]
+           
+            # only keep the best hit for each type of the segment 
+            if shared_hashes >= args.min_shared_hashes:
+                if segName not in segments:
+                    segments[segName] = []
+                    segments[segName].append(subType)
+                    f.writelines("\t".join(line) + "\n")
+                else:
+                    # Check if the string does not even partially matching any item in the list for the segName key
+                    if all(subType not in item for item in segments[segName]):
+                        segments[segName].append(subType)
+                        f.writelines("\t".join(line) + "\n")
+                    else:
+                        sys.stderr.write(f'"{qid} {subType}" partially matches at least one item in the {segName} list.\n')
     f.close()
 
 

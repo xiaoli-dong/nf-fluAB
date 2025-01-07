@@ -41,7 +41,8 @@ workflow SEEK_REFERENCES {
         ch_versions = ch_versions.mix(MASH_FILTER.out.versions.first())
 
         MASH_FILTER.out.screen.filter{
-            meta, screen -> screen.countLines() > 0
+            // if there is no best hit, the file only contains header
+            meta, screen -> screen.countLines() > 1
         }.set{
             screen_best
         } 

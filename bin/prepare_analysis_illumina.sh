@@ -2,23 +2,28 @@
 
 # Function to display usage instructions
 usage() {
-  echo "Usage: $0 -r <run_name> -o <output_directory>"
+  echo "Usage: $0 -i <illumina sequence Alignment_* directory> -r <run_name> -o <output_directory>"
   echo
   echo "This script processes raw sequencing data files for the specified 'run'."
+  echo "-i <input_dir>        Illumina sequence run directory, when you have multiple copies of the basecalls, provide the basecall directory. eg dir_to/Alignment_2 dir"
   echo "-r <run_name>         The name of the run to be processed."
   echo "-o <output_directory> The directory to store the processed files (default: ./analysis_apl)"
   echo
   echo "Example:"
-  echo "  $0 -r my_run_name -o /path/to/output"
+  echo "  $0 -i my_alignment_dir -r my_run_name -o /path/to/output"
   exit 1
 }
 
 # Default output directory
 output_dir="./analysis_apl"
+input_dir="."
 
 # Parse command-line arguments using getopts
-while getopts ":r:o:" opt; do
+while getopts ":i:r:o:" opt; do
   case $opt in
+    i)
+      input_dir=$OPTARG
+      ;;
     r)
       run=$OPTARG
       ;;
@@ -46,7 +51,7 @@ if [ ! -d fastq ]; then
     echo "Directory does not exist. Creating it now."
     mkdir -p fastq  # The -p flag ensures that parent directories are created if they don't exist.
     echo "copy fastq files"
-    for dir in $(find . -type d -name Fastq); do 
+    for dir in $(find $input_dir -type d -name Fastq); do 
       find $dir -type f -name "*.fastq.gz" ! -name 'Undetermined*' -exec cp {} fastq \;
     done
 fi

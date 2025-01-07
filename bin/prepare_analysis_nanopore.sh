@@ -2,25 +2,30 @@
 
 # Function to display usage instructions
 usage() {
-  echo "Usage: $0 -r <run_name> -o <output_directory> -b <barcode_range>"
+  echo "Usage: $0 -i <nanopore sequence directory> -r <run_name> -o <output_directory> -b <barcode_range>"
   echo
   echo "This script processes raw sequencing data files for the specified 'run'."
+  echo "-i <input_dir>          Nanopore sequence run directory or fastq_pass dir"
   echo "-r <run_name>           The name of the run to be processed."
   echo "-o <output_directory>   The directory to store the processed files (default: ./analysis_apl)"
   echo "-b <barcode_range>      Range of barcodes to process (default: 01-96)"
   echo
   echo "Example:"
-  echo "  $0 -r my_run_name -o /path/to/output -b 01-96"
+  echo "  $0 -i nanopore_seq_dir -r my_run_name -o /path/to/output -b 01-96"
   exit 1
 }
 
 # Default values for the options
+input_dir="."
 output_dir="./analysis_apl"
 barcode_range="01-96"
 
 # Parse command-line arguments using getopts
-while getopts ":r:o:b:" opt; do
+while getopts ":i:r:o:b:" opt; do
   case $opt in
+    i)
+      input_dir=$OPTARG
+      ;;
     r)
       run=$OPTARG
       ;;
@@ -56,6 +61,7 @@ fi
 mkdir -p "$output_dir/raw_data"
 
 echo "Processing files for run: $run"
+echo "Input nanopore sequence directory: $input_dir"
 echo "Output directory: $output_dir"
 echo "Barcode range: $barcode_range"
 
@@ -64,7 +70,7 @@ echo "Barcode range: $barcode_range"
 IFS="-" read -r start_barcode end_barcode <<< "$barcode_range"
 echo $start_barcode
 
-for dir in $(find ./ -type d -name fastq_pass); do 
+for dir in $(find $input_dir -type d -name fastq_pass); do 
   echo $dir;
   for (( i=$start_barcode; i<=$end_barcode; i++ )); do
     var=$(printf "%02d\n" $i)
@@ -75,10 +81,10 @@ done
 
 
 # Loop through fastq.gz files in the fastq directory
-for x in fastq/barcode*.fastq.gz; do
+for x in fastq/*barcode*.fastq.gz; do
   echo $x
   fname=${x/*\//}  # Extract file name from the full path
-  
+  fname=${fname//${run}-/}  # get rid of run name from the fastq file
   # Print debugging information
   echo "Processing sample: $x"
   echo "Run: $run"

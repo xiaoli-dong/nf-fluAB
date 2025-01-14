@@ -67,7 +67,7 @@ def main():
         #print(record.CHROM, file=sys.stderr)
         #print(record.POS, file=sys.stderr)
 
-        #print(record.calls)
+        print(record.calls)
         for call in record.calls:
             #print(call.data.get('GT') or './.', file=sys.stderr)
             #print(call.data.get('AD') or '', file=sys.stderr)
@@ -75,10 +75,12 @@ def main():
 
              #ALT is a list
             #filter out the regions having no variants
-            #print(record.ALT[0])
+            #print(record.ALT, file=sys.stderr)
+            #print(len(record.ALT), file=sys.stderr)
+            #print(record.ALT[0], file=sys.stderr)
             
             
-            if record.ALT[0].value == '*' or record.ALT[0].value == 'NON_REF':
+            if len(record.ALT) == 0 or record.ALT[0].value == '*' or record.ALT[0].value == 'NON_REF':
                 #print(len(record.REF), file=sys.stderr)
                 break
             

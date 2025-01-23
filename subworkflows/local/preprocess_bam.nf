@@ -45,7 +45,7 @@ workflow PREPROCESS_BAM {
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
     SAMTOOLS_VIEW(bam_bai, fasta, [])
-    
+    ch_bam_bai = bam_bai
     SAMTOOLS_VIEW.out.bam
         .join(fasta)
         .join(fai)
@@ -56,10 +56,14 @@ workflow PREPROCESS_BAM {
                 fai: [it[0], it[3]]
         }
         .set{ch_input}
-    //all the duplicates will be removed from the output
-    BAM_MARKDUPLICATES_PICARD(ch_input.bam_bai, ch_input.fasta, ch_input.fai)
-    ch_bam_bai = BAM_MARKDUPLICATES_PICARD.out.bam.join( BAM_MARKDUPLICATES_PICARD.out.bai)
+
     
+
+    if(params.platform == 'illumina'){
+        //all the duplicates will be removed from the output
+        BAM_MARKDUPLICATES_PICARD(ch_input.bam_bai, ch_input.fasta, ch_input.fai)
+        ch_bam_bai = BAM_MARKDUPLICATES_PICARD.out.bam.join( BAM_MARKDUPLICATES_PICARD.out.bai)
+    }
     SAMTOOLS_COVERAGE(ch_bam_bai)
     
     ch_input = ch_bam_bai.map{ it -> [it[0], it[1], 1] } //[meta, bam, scale]

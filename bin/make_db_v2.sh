@@ -26,7 +26,7 @@ input_fasta="sequences.fasta"
 outdir="./output"
 cpus=8
 genome_csv="BVBRC_genome.csv"
-prefix="sequences"
+prefix="sequence"
 outdb_prefix="influenzaDB-20240823"
 bindir=$(dirname "$0")
 
@@ -56,7 +56,7 @@ if [ "$env_exists" == "true" ]; then
 else
     echo "Error: Environment '$env_name' does not exist."
     echo "Please using the following command to creating it before running the script..."
-    echo "mamba create -n '$env_name' mmseqs2=15.6f452 mash=2.3 snpeff=5.2 vadr=1.6.4 biopython=1.84 entrez-direct=22.4 diamond=2.1.11 -y"
+    echo "mamba create -n '$env_name' mmseqs2=15.6f452 mash=2.3 snpeff=5.2 vadr=1.6.4 biopython=1.84 -y"
     exit 0
 fi
 #pip install requests Bio
@@ -75,24 +75,17 @@ fi
 mkdir -p "$outdir"
 
 # ---------------------------------------------
-# Step 1: Filter and reformat FASTA Sequences filter out:
-# parital sequecnes
-# sequences containing ambiguour bases
-# do not have metadata
+# Step 1: Filter and reformat FASTA Sequences
+#filter sequeces: too short, too long, has ambiguour bases, has not metadata
 echo "Filtering and reformatting FASTA sequences..."
 if ! [ -f "${outdir}/${prefix}.reformat.fasta" ]; then
     
-    # python ${bindir}/reformatSeqs.py \
-    #     --fasta sequences.fasta \
-    #     --minlen 700 \
-    #     --maxlen 3000 \
-    #     --maxambigs 0 \
-    #     --bvbrc BVBRC_genome.csv \
-    #     > "${outdir}/${prefix}.reformat.fasta" 2> reformatSeq.log.txt
     python ${bindir}/reformatSeqs.py \
         --fasta sequences.fasta \
+        --minlen 700 \
+        --maxlen 3000 \
+        --maxambigs 0 \
         --bvbrc BVBRC_genome.csv \
-        --base_outdir ${outdir} \
         > "${outdir}/${prefix}.reformat.fasta" 2> reformatSeq.log.txt
 fi
 
@@ -175,29 +168,7 @@ if ! [ -f "${outdir}/${outdb_prefix}_rep_seq.fasta" ]; then
         tmp
 fi
 
-if [ ! -d "${outdir}/viral_protein_dir" ]; then
-  echo "Directory does not exist."
-  mkdir -p ${outdir}/viral_protein_dir
-else
-  echo "${outdir}/viral_protein_dir Directory exists."
-fi
-
-if ! [ -f "${outdir}/viral_protein_dir/viral.1.protein.faa.gz" ]; then
-    wget -P ${outdir}/viral_protein_dir https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/viral.1.protein.faa.gz
-fi
-
-zcat ${outdir}/viral_protein_dir/viral.1.protein.faa.gz | grep -E "^(>.*(Influenza A|Influenza B).*)" > ${outdir}/viral_protein_dir/fluab_protein_ids.txt
-
-zcat ${outdir}/viral_protein_dir/viral.1.protein.faa.gz \
-    | perl "${bindir}/getSeqs.pl" \
-    -s - -t file \
-    -q ${outdir}/viral_protein_dir/fluab_protein_ids.txt > ${outdir}/viral_protein_dir/fluab_refseq_protein.fasta
-
-diamond makedb --in ${outdir}/viral_protein_dir/fluab_refseq_protein.fasta -d ${outdir}/viral_protein_dir/fluab_refseq_protein
-diamond blastx -d ${outdir}/viral_protein_dir/fluab_refseq_protein -q ${outdir}/${outdb_prefix}_rep_seq.fasta -o $outdir/${outdb_prefix}_rep_seq.blastx_fmt6.tsv --evalue 1e-5 -k 1 --outfmt 6
-python ${bindir}/validate_fludb_desc.py ${outdir}/viral_protein_dir/fluab_refseq_protein.fasta $outdir/${outdb_prefix}_rep_seq.blastx_fmt6.tsv flu_protein_to_segment.csv ${outdir}/${outdb_prefix}_rep_seq.fasta > ${outdir}/${outdb_prefix}.fasta
-
-#mv ${outdir}/${outdb_prefix}_rep_seq.fasta ${outdir}/${outdb_prefix}.fasta
+mv ${outdir}/${outdb_prefix}_rep_seq.fasta ${outdir}/${outdb_prefix}.fasta
 # ---------------------------------------------
 # Step 7: Mash Sketch
 echo "Performing Mash sketch..."

@@ -1,0 +1,23 @@
+polymerase pb2,1,PB2
+polymerase pb1,2,PB1
+pb1 polymerase subunit,2,PB1
+polymerase pa,3,PA
+pa-x protein,3,PA
+ha2,4,HA
+hemagglutinin,4,HA
+haemagglutinin,4,HA
+ha1,4,HA
+nucleocapsid protein,5,NP
+nucleoprotein,5,NP
+neuraminidase,6,NA
+membrane protein m1,7,M
+matrix protein 1,7,M
+matrix protein m1,7,M
+membrane protein m2,7,M
+matrix protein 2,7,M
+nonstructural protein 2,8,NS
+nonstructural protein 1,8,NS
+nonstructural protein ns-1,8,NS
+nonstructural protein ns-2,8,NS
+nuclear export protein,8,NS
+nb protein,8,M

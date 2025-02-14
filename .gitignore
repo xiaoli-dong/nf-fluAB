@@ -3,4 +3,5 @@ test/
 .vscode
 null*
 assets/clair3_models/
-fludb/
+fludb*/
+

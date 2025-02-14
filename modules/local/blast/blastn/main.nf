@@ -12,7 +12,7 @@ process BLAST_BLASTN {
     path  db //fasta reference file
 
     output:
-    tuple val(meta), path('*.blastn.tsv'), emit: tsv
+    tuple val(meta), path('*.typing_output.tsv'), emit: tsv
     path "versions.yml"                  , emit: versions
 
     when:
@@ -20,6 +20,7 @@ process BLAST_BLASTN {
 
     script:
     def args = task.ext.args ?: ''
+    def args2 = task.ext.args2 ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     
 
@@ -28,8 +29,10 @@ process BLAST_BLASTN {
     if [[ $fasta == *.gz ]] 
     then
         gzip -dc $fasta | blastn -num_threads $task.cpus -subject ${db}  $args -out ${prefix}.blastn.tsv
+        awk '\$NF > ${args2} {if (!seen[\$1]++) print \$0}' ${prefix}.blastn.tsv > ${prefix}.typing_output.tsv
     else
         blastn -num_threads $task.cpus -subject ${db} -query $fasta $args -out ${prefix}.blastn.tsv
+        awk '\$NF > ${args2} {if (!seen[\$1]++) print \$0}' ${prefix}.blastn.tsv > ${prefix}.typing_output.tsv
     fi
     
     

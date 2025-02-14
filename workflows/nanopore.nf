@@ -384,11 +384,18 @@ workflow NANOPORE {
         }.groupTuple()
 
     
-    ch_merge = ch_screen.join(ch_coverage)//.view()
+    /* ch_merge = ch_screen.join(ch_coverage)//.view()
         .join(consensus_stats)//.view()
         .join(ch_typing)//.view()
         .join(ch_nextclade_tsv)//.view()
         .join(ch_nextclade_dbs)//.view()
+        .view() */
+
+    ch_merge = ch_screen.join(ch_coverage, remainder: true)//.view()
+        .join(consensus_stats, remainder: true)//.view()
+        .join(ch_typing, remainder: true)//.view()
+        .join(ch_nextclade_tsv, remainder: true)//.view()
+        .join(ch_nextclade_dbs, remainder: true)//.view()
         .view()
 
     // ch_screen

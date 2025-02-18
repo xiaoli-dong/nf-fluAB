@@ -56,7 +56,7 @@ if [ "$env_exists" == "true" ]; then
 else
     echo "Error: Environment '$env_name' does not exist."
     echo "Please using the following command to creating it before running the script..."
-    echo "mamba create -n '$env_name' mmseqs2=15.6f452 mash=2.3 snpeff=5.2 vadr=1.6.4 biopython=1.84 entrez-direct=22.4 diamond=2.1.11 cd-hit=4.8.1 -y"
+    echo "mamba create -n '$env_name' mmseqs2=15.6f452 mash=2.3 snpeff=5.2 vadr=1.6.4 biopython=1.84 entrez-direct=22.4 diamond=2.1.11 -y"
     exit 0
 fi
 #pip install requests Bio
@@ -92,36 +92,27 @@ if ! [ -f "${outdir}/${prefix}.reformat.fasta" ]; then
     python ${bindir}/reformatSeqs.py \
         --fasta sequences.fasta \
         --bvbrc BVBRC_genome.csv \
-        --minlen 700 \
-        --maxlen 3000 \
-        --maxambigs 0 \
         --base_outdir ${outdir} \
         > "${outdir}/${prefix}.reformat.fasta" 2> reformatSeq.log.txt
 fi
 
 # ---------------------------------------------
 # Step 2: MMseqs2 Clustering
-echo "Running cd-hit-est clustering..."
+echo "Running MMseqs2 clustering..."
 if ! [ -f "${outdir}/${prefix}.cluster0.99_rep_seq.fasta" ]; then
-    # mmseqs easy-cluster \
-    #     --threads "$cpus" \
-    #     -c 0.7 \
-    #     --cov-mode 0 \
-    #     --alignment-mode 3 \
-    #     --min-seq-id 0.99 \
-    #     --similarity-type 2 \
-    #     --cluster-mode 2 \
-    #     --cluster-reassign 1 \
-    #     -v 2 \
-    #     "${outdir}/${prefix}.reformat.fasta" \
-    #     "${outdir}/${prefix}.cluster0.99" \
-    #     tmp \
-    #     >& "${outdir}/${prefix}.cluster0.99.log.txt"
-
-    cd-hit-est \
-        -i ${outdir}/${prefix}.reformat.fasta \
-        -o ${outdir}/${prefix}.cluster0.99_rep_seq.fasta \
-        -c 0.99 -d 0 -g 1 -M 0\
+    mmseqs easy-cluster \
+        --threads "$cpus" \
+        -c 0.7 \
+        --cov-mode 0 \
+        --alignment-mode 3 \
+        --min-seq-id 0.99 \
+        --similarity-type 2 \
+        --cluster-mode 2 \
+        --cluster-reassign 1 \
+        -v 2 \
+        "${outdir}/${prefix}.reformat.fasta" \
+        "${outdir}/${prefix}.cluster0.99" \
+        tmp \
         >& "${outdir}/${prefix}.cluster0.99.log.txt"
 fi
 
@@ -169,25 +160,19 @@ fi
 # Step 6: Increase Clustering Coverage for CDS
 echo "Increasing clustering coverage for CDS sequences..."
 if ! [ -f "${outdir}/${outdb_prefix}_rep_seq.fasta" ]; then
-    # mmseqs easy-cluster \
-    #     --threads "$cpus" \
-    #     -c 0.9 \
-    #     --cov-mode 0 \
-    #     --alignment-mode 3 \
-    #     --min-seq-id 0.97 \
-    #     --similarity-type 2 \
-    #     --cluster-mode 2 \
-    #     --cluster-reassign 1 \
-    #     -v 2 \
-    #     "${outdir}/${prefix}.annotate.cds.fasta" \
-    #     "${outdir}/${outdb_prefix}" \
-    #     tmp
-    
-    cd-hit-est \
-        -i ${outdir}/${prefix}.annotate.cds.fasta \
-        -o ${outdir}/${outdb_prefix}_rep_seq.fasta \
-        -c 0.97 -d 0 -g 1 -M 0\
-        >& "${outdir}/${prefix}.annotate.cds.cluster0.97.log.txt"
+    mmseqs easy-cluster \
+        --threads "$cpus" \
+        -c 0.9 \
+        --cov-mode 0 \
+        --alignment-mode 3 \
+        --min-seq-id 0.97 \
+        --similarity-type 2 \
+        --cluster-mode 2 \
+        --cluster-reassign 1 \
+        -v 2 \
+        "${outdir}/${prefix}.annotate.cds.fasta" \
+        "${outdir}/${outdb_prefix}" \
+        tmp
 fi
 
 if [ ! -d "${outdir}/viral_protein_dir" ]; then

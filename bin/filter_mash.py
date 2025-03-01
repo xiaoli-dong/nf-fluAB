@@ -25,14 +25,27 @@ def main():
         required=True,
         help=f"The filtered output file\n",
     )
-    parser.add_argument(
+    """ parser.add_argument(
         "-m",
         "--min_shared_hashes",
         type=int,
         default=100,
         help=f"The min shared hash value\n",
+    ) """
+    parser.add_argument(
+        "-m",
+        "--min_hash_coverage",
+        type=float,
+        default=0.5,
+        help=f"The min hash coverage value\n",
     )
-
+    parser.add_argument(
+        "-a",
+        "--min_median_multiplicity",
+        type=float,
+        default=10,
+        help=f"The min hash coverage value\n",
+    )
     args = parser.parse_args()
 
     # [identity, shared-hashes, median-multiplicity, p-value, query-ID, query-comment]
@@ -61,6 +74,11 @@ def main():
             #shared-hashes
             hashes = line[1].split("/")
             shared_hashes = int(hashes[0])
+            total_hashes = int(hashes[1])
+            hash_coverage = total_hashes/total_hashes
+
+            multiplicity = int(line[2])
+
             # parse query-comment
             fields = line[5].split("|")
             segName = fields[2]
@@ -68,7 +86,9 @@ def main():
             qid = line[4]
            
             # only keep the best hit for each type of the segment 
-            if shared_hashes >= args.min_shared_hashes:
+            #if shared_hashes >= args.min_shared_hashes:
+            if (hash_coverage >= args.min_hash_coverage) and (multiplicity >= args.min_median_multiplicity):
+
                 if segName not in segments:
                     segments[segName] = []
                     segments[segName].append(subType)

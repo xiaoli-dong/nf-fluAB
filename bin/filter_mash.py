@@ -43,7 +43,7 @@ def main():
         "-a",
         "--min_median_multiplicity",
         type=float,
-        default=10,
+        default=0,
         help=f"The min hash coverage value\n",
     )
     args = parser.parse_args()
@@ -55,8 +55,7 @@ def main():
 
     f = open(f"{args.output}", "w", encoding="utf-8")
     #segments = {"PB1": False, "PB2": False, "PA": False, "HA": False, "NP": False, "NA": False, "M": False, "NS": False}
-    segments = {}
-    subtype = {}
+    
     header = ['identity', 'shared-hashes', 'median-multiplicity', 'p-value', 'query-ID', 'query-comment']
     f.writelines("\t".join(header) + "\n")
     
@@ -69,13 +68,15 @@ def main():
             key=operator.itemgetter(0),
             reverse=True,
         )
-       
+        segments = {}
+        subtype = {}
         for line in csvData:
             #shared-hashes
+            identity = float(line[0])
             hashes = line[1].split("/")
             shared_hashes = int(hashes[0])
             total_hashes = int(hashes[1])
-            hash_coverage = total_hashes/total_hashes
+            hash_coverage = shared_hashes/total_hashes
 
             multiplicity = int(line[2])
 
@@ -87,15 +88,19 @@ def main():
            
             # only keep the best hit for each type of the segment 
             #if shared_hashes >= args.min_shared_hashes:
+            # print(str(hash_coverage) + " " + str(args.min_hash_coverage)
+            #       )
+            # print(str(multiplicity) + " " + str(args.min_median_multiplicity))
             if (hash_coverage >= args.min_hash_coverage) and (multiplicity >= args.min_median_multiplicity):
 
                 if segName not in segments:
-                    segments[segName] = []
+                    segments[segName] = [] 
                     segments[segName].append(subType)
                     f.writelines("\t".join(line) + "\n")
                 else:
                     # Check if the string does not even partially matching any item in the list for the segName key
-                    if all(subType not in item for item in segments[segName]):
+                    # added identity >+ 0.97 because it picked some second match because of subtype is na, it actually only shared some range
+                    if all(subType not in item for item in segments[segName]) and identity >= 0.97:
                         segments[segName].append(subType)
                         f.writelines("\t".join(line) + "\n")
                     else:

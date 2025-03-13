@@ -7,7 +7,7 @@ usage() {
   echo "This script processes raw sequencing data files for the specified 'run'."
   echo "-i <input_dir>        Illumina sequence run directory, when you have multiple copies of the basecalls, provide the basecall directory. eg dir_to/Alignment_2 dir"
   echo "-r <run_name>         The name of the run to be processed."
-  echo "-o <output_directory> The directory to store the processed files (default: ./analysis_apl)"
+  echo "-o <output_directory> The directory to store the processed files (default: ./nf-fluAB_analysis)"
   echo
   echo "Example:"
   echo "  $0 -i my_alignment_dir -r my_run_name -o /path/to/output"
@@ -15,7 +15,7 @@ usage() {
 }
 
 # Default output directory
-output_dir="./analysis_apl"
+output_dir="./nf-fluAB_analysis"
 input_dir="."
 
 # Parse command-line arguments using getopts

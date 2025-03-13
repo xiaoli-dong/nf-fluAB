@@ -43,13 +43,7 @@ def extract(header, sequence, cds_coords, minlen, maxlen, maxambigs):
     subseq=''
 
     if seqid in cds_coords:
-        """ coord = cds_coords[seqid]
-        pattern = r'^(\d+?)\..(\d+?)\:([+-])'
-        match = re.search(pattern, coord)
-        seq_from = int(match.group(1))
-        seq_to = int(match.group(2))
-        strand = match.group(3) """
-
+        
         if cds_coords[seqid]['strand'] == '-':
             # start_index = seq_to -1
             # end_index = seq_from

@@ -1,7 +1,7 @@
 import sys
 import csv
 from collections import defaultdict
-
+import traceback
 # Parse FASTA file and return sequences and descriptions in two dictionaries
 def parse_protein_fasta(fasta_file):
     sequences = defaultdict(str)
@@ -47,11 +47,25 @@ def parse_protein_fasta(fasta_file):
         sys.exit(1)
 
     return sequences, descriptions
+
+def parse_fasta_header(header):
+    # Remove the leading '>' character from the header
+    header = header.lstrip('>')
+    
+    # Split at the first space to separate the sequence ID from the description
+    parts = header.split(' ', 1)  # Split into at most 2 parts
+    
+    # The first part is the sequence ID, the rest is the description
+    seq_id = parts[0]
+    description = parts[1] if len(parts) > 1 else ""  # Handle case where there's no description
+    
+    return seq_id, description
+
 # Parse FASTA file and return sequences and descriptions in two dictionaries
 def parse_fasta(fasta_file):
     sequences = defaultdict(str)
     descriptions = {}
-
+    
     try:
         with open(fasta_file, 'r') as file:
             seq_id = None
@@ -60,25 +74,28 @@ def parse_fasta(fasta_file):
 
             for line in file:
                 line = line.strip()
+               
                 if line.startswith('>'):  # Header line starts with '>'
                     if seq_id:  # Save the previous sequence before moving to the next
                         sequences[seq_id] = seq
                         descriptions[seq_id] = description
-
-                    seq_id = line[1:].split()[0]  # Get the sequence ID (first part of the header)
-                    description = line.split(' ', 1)[1].strip()
-
+                    
+                    seq_id, description = parse_fasta_header(line)
                     seq = ''  # Reset sequence string for the next sequence
                 else:
                     seq += line  # Append sequence data
-
+                
             # Save the last sequence in the file
             if seq_id:
                 sequences[seq_id] = seq
                 descriptions[seq_id] = description
 
     except Exception as e:
-        print(f"Error reading FASTA file: {e}")
+        print(f"Error reading FASTA file: {e}", file=sys.stderr)
+        # Capture the detailed exception
+        error_details = traceback.format_exc()
+        
+        print(f"Detailed traceback: {error_details}", file=sys.stderr)
         sys.exit(1)
     
     return sequences, descriptions
@@ -142,14 +159,14 @@ def main():
 
     # Print the extracted sequences and descriptions from the FASTA file
     print("Protein FASTA file contents:", file=sys.stderr)
-    for aa_seqid, aa_description in aa_descriptions.items():
+    """  for aa_seqid, aa_description in aa_descriptions.items():
         print(f"ID: {aa_seqid}, Description: {aa_description}", file=sys.stderr)
-        #print(f"Sequence: {aa_sequences[seq_id]}\n")
+        #print(f"Sequence: {aa_sequences[seq_id]}\n") """
 
     # Print the extracted key-value pairs from the TSV file
     print("Diamon blastx fmt6 TSV file contents:", file=sys.stderr)
     for dna_seqid, aa_seqid in seq2proteinhits_dict.items():
-        print(f"Key: {dna_seqid}, Value: {aa_seqid}", file=sys.stderr)
+        #print(f"Key: {dna_seqid}, Value: {aa_seqid}", file=sys.stderr)
         # Retrieve the description for the sequence from the descriptions dictionary
         aa_seq_description = aa_descriptions.get(aa_seqid, "Description not found")
         segid = desc2segid_dict.get(aa_seq_description.lower(), "Segment ID not found")
@@ -176,12 +193,12 @@ def main():
         #print(f"New Segment ID: {segid}|{segname}")
         new_value = segid + '|' + segname
         if new_value not in dna_description: 
-            print(f"********************** {new_value}", file=sys.stderr)
-            print(f"ID: {dna_seqid}, Description: {dna_description}", file=sys.stderr)
+            # print(f"********************** {new_value}", file=sys.stderr)
+            # print(f"ID: {dna_seqid}, Description: {dna_description}", file=sys.stderr)
 
             # Use regular expression to replace the value between the first and third vertical bars
             modified_desc = re.sub(r'^[^|]+\|([^|]+)\|', lambda m: f'{m.group(0).split("|")[0]}|{new_value}|', dna_description)
-            print(f"ID: {dna_seqid}, Description: {modified_desc}", file=sys.stderr)
+            #print(f"ID: {dna_seqid}, Description: {modified_desc}", file=sys.stderr)
             #print(f"Sequence: {my_sequences[seq_id]}\n")
             #print out sequences
             print(f">{dna_seqid} {modified_desc}\n{dna_sequences[dna_seqid]}")

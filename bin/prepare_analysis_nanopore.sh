@@ -7,7 +7,7 @@ usage() {
   echo "This script processes raw sequencing data files for the specified 'run'."
   echo "-i <input_dir>          Nanopore sequence run directory or fastq_pass dir"
   echo "-r <run_name>           The name of the run to be processed."
-  echo "-o <output_directory>   The directory to store the processed files (default: ./analysis_apl)"
+  echo "-o <output_directory>   The directory to store the processed files (default: ./nf-fluAB_analysis)"
   echo "-b <barcode_range>      Range of barcodes to process (default: 01-96)"
   echo
   echo "Example:"
@@ -17,7 +17,7 @@ usage() {
 
 # Default values for the options
 input_dir="."
-output_dir="./analysis_apl"
+output_dir="./nf-fluAB_analysis"
 barcode_range="01-96"
 
 # Parse command-line arguments using getopts

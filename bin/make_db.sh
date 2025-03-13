@@ -28,6 +28,8 @@ cpus=8
 genome_csv="BVBRC_genome.csv"
 prefix="sequences"
 outdb_prefix="influenzaDB-20240823"
+gb_dir="./gb_dir"
+biosample_outdir="./biosample_dir"
 bindir=$(dirname "$0")
 
 # Parse command-line arguments
@@ -80,29 +82,34 @@ mkdir -p "$outdir"
 # sequences containing ambiguour bases
 # do not have metadata
 echo "Filtering and reformatting FASTA sequences..."
-if ! [ -f "${outdir}/${prefix}.reformat.fasta" ]; then
-    
-    # python ${bindir}/reformatSeqs.py \
-    #     --fasta sequences.fasta \
-    #     --minlen 700 \
-    #     --maxlen 3000 \
-    #     --maxambigs 0 \
-    #     --bvbrc BVBRC_genome.csv \
-    #     > "${outdir}/${prefix}.reformat.fasta" 2> reformatSeq.log.txt
-    python ${bindir}/reformatSeqs.py \
-        --fasta sequences.fasta \
-        --bvbrc BVBRC_genome.csv \
+cmd="python ${bindir}/reformatSeqs.py \
+        --fasta $input_fasta \
+        --bvbrc $genome_csv \
         --minlen 700 \
         --maxlen 3000 \
         --maxambigs 0 \
-        --base_outdir ${outdir} \
-        > "${outdir}/${prefix}.reformat.fasta" 2> reformatSeq.log.txt
+        --base_outdir . \
+        --biosample_outdir ${biosample_outdir} \
+        > ${prefix}.reformat.fasta 2> reformatSeq.log.txt"
+echo $cmd
+
+if ! [ -f "${prefix}.reformat.fasta" ]; then
+    cmd_to_run=$(echo $cmd)
+    eval $cmd_to_run
 fi
 
 # ---------------------------------------------
-# Step 2: MMseqs2 Clustering
+# Step 2.1: MMseqs2 Clustering
+rep_fasta="${outdir}/${prefix}.cluster0.99_rep_seq.fasta"
+rep_clstr="${outdir}/${prefix}.cluster0.99_rep_seq.fasta.clstr"
 echo "Running cd-hit-est clustering..."
-if ! [ -f "${outdir}/${prefix}.cluster0.99_rep_seq.fasta" ]; then
+cmd="cd-hit-est \
+        -i ${prefix}.reformat.fasta \
+        -o ${rep_fasta} \
+        -c  0.99 -d 0  -g 1 -M 0 -T 8 -p 1 -sc 1 \
+        2> ${outdir}/${prefix}.cluster0.99.log.txt"
+echo $cmd
+if ! [ -f "${rep_fasta}" ]; then
     # mmseqs easy-cluster \
     #     --threads "$cpus" \
     #     -c 0.7 \
@@ -117,58 +124,85 @@ if ! [ -f "${outdir}/${prefix}.cluster0.99_rep_seq.fasta" ]; then
     #     "${outdir}/${prefix}.cluster0.99" \
     #     tmp \
     #     >& "${outdir}/${prefix}.cluster0.99.log.txt"
-
-    cd-hit-est \
-        -i ${outdir}/${prefix}.reformat.fasta \
-        -o ${outdir}/${prefix}.cluster0.99_rep_seq.fasta \
-        -c 0.99 -d 0 -g 1 -M 0\
-        >& "${outdir}/${prefix}.cluster0.99.log.txt"
+    cmd_to_run=$(echo $cmd)
+    eval $cmd_to_run
+    
 fi
 
-# python ${bindir}/filter_singleton.py \
-#     --fasta output/sequence.cluster0.99_rep_seq.fasta \
-#     --tsv output/sequence.cluster0.99_cluster.tsv \
-#     > output/sequence.cluster0.99_rep_seq.singularity_out.fasta \
-#     2> filter_singleton.log.txt
+# Step 2.2: 
+echo "Running pick repseq..."
+rep_picked_fasta="${outdir}/${prefix}.cluster0.99_rep_picked.fasta"
+rep_picked_clstr="${rep_picked_fasta}.clstr"
+
+cmd="python ${bindir}/pick_rep_from_cdhit.py \
+        -f ${prefix}.reformat.fasta \
+        -c ${rep_clstr} \
+        --out_clstr ${rep_picked_clstr} \
+        --out_fasta ${rep_picked_fasta} \
+        2> ${outdir}/pick_rep.0.99.stderr.txt"
+echo $cmd
+
+if ! [ -f "${outdir}/${prefix}.cluster0.99_rep_picked.fasta" ]; then
+    cmd_to_run=$(echo $cmd)
+    eval $cmd_to_run
+fi
 
 # ---------------------------------------------
 # Step 3: Trim Terminal Ambiguities
 echo "Trimming terminal ambiguities..."
+cmd="fasta-trim-terminal-ambigs.pl ${rep_picked_fasta} > ${outdir}/${prefix}.vadr_trim.fasta"
+echo $cmd
+
 if ! [ -f "${outdir}/${prefix}.vadr_trim.fasta" ]; then
-    fasta-trim-terminal-ambigs.pl \
-        "${outdir}/${prefix}.cluster0.99_rep_seq.fasta" \
-        > "${outdir}/${prefix}.vadr_trim.fasta"
+    cmd_to_run=$(echo $cmd)
+    eval $cmd_to_run
 fi
 
 # ---------------------------------------------
 # Step 4: VADR Annotation
 echo "Annotating sequences with VADR..."
-if ! [ -f "${outdir}/${prefix}.annotate/${prefix}.annotate.vadr.pass.fa" ]; then
-    v-annotate.pl \
-        --cpu "$cpus" \
+cmd="v-annotate.pl \
+        --cpu $cpus \
         --split -r --atgonly --xnocomp --nomisc \
         --alt_fail extrant5,extrant3 \
         --mkey flu \
         --mdir /nfs/APL_Genomics/db/prod/vadr/vadr-models-flu-1.6.3-2 \
-        "${outdir}/${prefix}.cluster0.99_rep_seq.fasta" \
-        "${outdir}/${prefix}.annotate"
+        ${outdir}/${prefix}.vadr_trim.fasta \
+        ${outdir}/${prefix}.annotate"
+echo $cmd
+
+if ! [ -f "${outdir}/${prefix}.annotate/${prefix}.annotate.vadr.pass.fa" ]; then
+    cmd_to_run=$(echo $cmd)
+    eval $cmd_to_run
 fi
 
 # ---------------------------------------------
 # Step 5: Extract CDS Sequences
 echo "Extracting CDS sequences..."
-if ! [ -f "${outdir}/${prefix}.annotate.cds.fasta" ]; then
-    python "${bindir}/extract_cds.py" \
-        --fasta "${outdir}/${prefix}.annotate/${prefix}.annotate.vadr.pass.fa" \
+cmd="python ${bindir}/extract_cds.py \
+        --fasta ${outdir}/${prefix}.annotate/${prefix}.annotate.vadr.pass.fa \
         --bvbrc "$genome_csv" \
-        --sgm "${outdir}/${prefix}.annotate/${prefix}.annotate.vadr.sgm" \
-        > "${outdir}/${prefix}.annotate.cds.fasta"
+        --sgm ${outdir}/${prefix}.annotate/${prefix}.annotate.vadr.sgm \
+        > ${outdir}/${prefix}.annotate.cds.fasta"
+echo $cmd
+
+if ! [ -f "${outdir}/${prefix}.annotate.cds.fasta" ]; then
+    cmd_to_run=$(echo $cmd)
+    eval $cmd_to_run
 fi
 
 # ---------------------------------------------
 # Step 6: Increase Clustering Coverage for CDS
 echo "Increasing clustering coverage for CDS sequences..."
-if ! [ -f "${outdir}/${outdb_prefix}_rep_seq.fasta" ]; then
+rep_fasta="${outdir}/cds.cluster0.97_rep_seq.fasta"
+rep_clstr="${outdir}/cds.cluster0.97_rep_seq.fasta.clstr"
+
+cmd="cd-hit-est -c 0.97 -d 0 -g 1 -M 0 -T 8 -s 0.9 -aL 0.9 -aS 0.9 -p 1 -sc 1 \
+        -i ${outdir}/${prefix}.annotate.cds.fasta \
+        -o ${rep_fasta}"
+echo $cmd
+
+if ! [ -f "${rep_fasta}" ]; then
     # mmseqs easy-cluster \
     #     --threads "$cpus" \
     #     -c 0.9 \
@@ -183,43 +217,109 @@ if ! [ -f "${outdir}/${outdb_prefix}_rep_seq.fasta" ]; then
     #     "${outdir}/${outdb_prefix}" \
     #     tmp
     
-    cd-hit-est \
-        -i ${outdir}/${prefix}.annotate.cds.fasta \
-        -o ${outdir}/${outdb_prefix}_rep_seq.fasta \
-        -c 0.97 -d 0 -g 1 -M 0\
-        >& "${outdir}/${prefix}.annotate.cds.cluster0.97.log.txt"
+    cmd_to_run=$(echo $cmd)
+    eval $cmd_to_run
 fi
 
-if [ ! -d "${outdir}/viral_protein_dir" ]; then
+echo "Running pick repseq..."
+rep_picked_fasta="${outdir}/cds.cluster0.97_rep_picked.fasta"
+rep_picked_clstr="${rep_picked_fasta}.clstr"
+
+cmd="python ${bindir}/pick_rep_from_cdhit.py \
+        -f ${outdir}/${prefix}.annotate.cds.fasta \
+        -c ${rep_clstr} \
+        --out_clstr ${rep_picked_clstr} \
+        --out_fasta ${rep_picked_fasta} \
+        2> ${outdir}/pick_rep.0.97.stderr.txt"
+echo $cmd
+
+if ! [ -f "${rep_picked_fasta}" ]; then
+    cmd_to_run=$(echo $cmd)
+    eval $cmd_to_run
+fi
+
+
+# downloading refseq viral protein db
+if [ ! -d "./viral_protein_dir" ]; then
   echo "Directory does not exist."
-  mkdir -p ${outdir}/viral_protein_dir
+  mkdir -p ./viral_protein_dir
 else
-  echo "${outdir}/viral_protein_dir Directory exists."
+  echo "./viral_protein_dir Directory exists."
 fi
 
-if ! [ -f "${outdir}/viral_protein_dir/viral.1.protein.faa.gz" ]; then
-    wget -P ${outdir}/viral_protein_dir https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/viral.1.protein.faa.gz
+echo "Getting influenza protein sequences from refseq to correct some segment misassignments in NCBI..."
+cmd="wget -P ./viral_protein_dir https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/viral.1.protein.faa.gz"
+echo $cmd
+if ! [ -f "./viral_protein_dir/viral.1.protein.faa.gz" ]; then
+    cmd_to_run=$(echo $cmd)
+    eval $cmd_to_run
 fi
 
-zcat ${outdir}/viral_protein_dir/viral.1.protein.faa.gz | grep -E "^(>.*(Influenza A|Influenza B).*)" > ${outdir}/viral_protein_dir/fluab_protein_ids.txt
+cmd="zcat ./viral_protein_dir/viral.1.protein.faa.gz | grep -E \"^(>.*(Influenza A|Influenza B).*)\" > ./viral_protein_dir/fluab_protein_ids.txt"
+echo $cmd
+if ! [ -f "./viral_protein_dir/fluab_protein_ids.txt" ]; then
+    cmd_to_run=$(echo $cmd)
+    eval $cmd_to_run
+fi
 
-zcat ${outdir}/viral_protein_dir/viral.1.protein.faa.gz \
-    | perl "${bindir}/getSeqs.pl" \
+cmd="zcat ./viral_protein_dir/viral.1.protein.faa.gz \
+    | perl ${bindir}/getSeqs.pl \
     -s - -t file \
-    -q ${outdir}/viral_protein_dir/fluab_protein_ids.txt > ${outdir}/viral_protein_dir/fluab_refseq_protein.fasta
+    -q ./viral_protein_dir/fluab_protein_ids.txt > ./viral_protein_dir/fluab_refseq_protein.fasta"
+echo $cmd
+if ! [ -f "./viral_protein_dir/fluab_refseq_protein.fasta" ]; then
+    cmd_to_run=$(echo $cmd)
+    eval $cmd_to_run
+fi
 
-diamond makedb --in ${outdir}/viral_protein_dir/fluab_refseq_protein.fasta -d ${outdir}/viral_protein_dir/fluab_refseq_protein
-diamond blastx -d ${outdir}/viral_protein_dir/fluab_refseq_protein -q ${outdir}/${outdb_prefix}_rep_seq.fasta -o $outdir/${outdb_prefix}_rep_seq.blastx_fmt6.tsv --evalue 1e-5 -k 1 --outfmt 6
-python ${bindir}/validate_fludb_desc.py ${outdir}/viral_protein_dir/fluab_refseq_protein.fasta $outdir/${outdb_prefix}_rep_seq.blastx_fmt6.tsv flu_protein_to_segment.csv ${outdir}/${outdb_prefix}_rep_seq.fasta > ${outdir}/${outdb_prefix}.fasta
+cmd="diamond makedb --in ./viral_protein_dir/fluab_refseq_protein.fasta -d ./viral_protein_dir/fluab_refseq_protein"
+echo $cmd
+if ! [ -f "./viral_protein_dir/fluab_refseq_protein.dmnd" ]; then
+    cmd_to_run=$(echo $cmd)
+    eval $cmd_to_run
+fi
+
+echo "correcting segment misassignments in NCBI..."
+
+cmd="diamond blastx -d ./viral_protein_dir/fluab_refseq_protein \
+    -q  ${rep_picked_fasta} \
+    -o  ${rep_picked_fasta}.blastx_fmt6.tsv \
+    --evalue 1e-5 -k 1 --outfmt 6"
+echo $cmd
+
+if ! [ -f " ${rep_picked_fasta}.blastx_fmt6.tsv" ]; then
+    cmd_to_run=$(echo $cmd)
+    eval $cmd_to_run
+fi
+echo "validating desc ..."
+cmd="python ${bindir}/validate_fludb_desc.py \
+    ./viral_protein_dir/fluab_refseq_protein.fasta \
+    ${rep_picked_fasta}.blastx_fmt6.tsv \
+    ./flu_protein_to_segment.csv \
+    ${rep_picked_fasta} \
+    >  ${outdir}/${outdb_prefix}.fasta"
+
+
+echo $cmd
+
+if ! [ -f "${outdir}/${outdb_prefix}.fasta" ]; then
+    cmd_to_run=$(echo $cmd)
+    eval $cmd_to_run
+fi
+
 
 #mv ${outdir}/${outdb_prefix}_rep_seq.fasta ${outdir}/${outdb_prefix}.fasta
 # ---------------------------------------------
 # Step 7: Mash Sketch
 echo "Performing Mash sketch..."
+cmd="mash sketch \
+        -i ${outdir}/${outdb_prefix}.fasta \
+        -o ${outdir}/${outdb_prefix}.msh"
+echo $cmd
+
 if ! [ -f "${outdir}/${outdb_prefix}.msh" ]; then
-    mash sketch \
-        -i "${outdir}/${outdb_prefix}.fasta" \
-        -o "${outdir}/${outdb_prefix}.msh"
+    cmd_to_run=$(echo $cmd)
+    eval $cmd_to_run
 fi
 
 if ! [ -d "${outdir}/${outdb_prefix}" ]; then
@@ -240,24 +340,27 @@ grep ">" "${outdir}/${outdb_prefix}.fasta" | cut -f1 -d$' ' | cut -c 2- > "${out
 # ---------------------------------------------
 # Step 9: Download GenBank Files
 echo "Downloading GenBank files..."
-if ! [ -d "${outdir}/gb_dir" ]; then
-    mkdir "${outdir}/gb_dir"
+if ! [ -d "${gb_dir}" ]; then
+    mkdir "./${gb_dir}"
 fi
-python "${bindir}/download_genbank.py" \
-    --input "${outdir}/genome_ids.txt" \
-    --outdir "${outdir}/gb_dir"
 
+cmd="python ${bindir}/download_genbank.py \
+    --input ${outdir}/genome_ids.txt \
+    --outdir ./${gb_dir}"
+
+cmd_to_run=$(echo $cmd)
+eval $cmd_to_run
 
 # ---------------------------------------------
 # Step 10: Concatenate GenBank Files
 echo "Concatenating GenBank files..."
-if [ -f "${outdir}/data/fluab/genes.gbk" ]; then
-    rm -rf "${outdir}/data/fluab/"
+if [ -f "${outdir}/snpeff/data/fluab/genes.gbk" ]; then
+    rm -rf "${outdir}/snpeff/data/fluab/"
 fi
 
 #if ! [ -f "${outdir}/data/fluab/genes.gbk" ]; then
-mkdir -p "${outdir}/data/fluab"
-cat "${outdir}/gb_dir"/*.gb > "${outdir}/data/fluab/genes.gbk"
+mkdir -p "${outdir}/snpeff/data/fluab"
+cat "./gb_dir"/*.gb > "${outdir}/snpeff/data/fluab/genes.gbk"
 #fi
 
 # ---------------------------------------------
@@ -272,26 +375,31 @@ perl -ne '
         print join(", ", @ids);
         print "\n";
     }
-' "${outdir}/genome_ids.txt" > "${outdir}/snpEff.config"
+' "${outdir}/genome_ids.txt" > "${outdir}/snpeff/snpEff.config"
 
 # ---------------------------------------------
 # Step 12: Convert Coding Sequences to GTF Format
 echo "Converting coding sequences to GTF format..."
-python "${bindir}/coding2gtf22.py" \
-    --input "${outdir}/${outdb_prefix}.fasta" \
-    --output "${outdir}/data/fluab/genes.gtf"
+cmd="python ${bindir}/coding2gtf22.py \
+    --input ${outdir}/${outdb_prefix}.fasta \
+    --output ${outdir}/snpeff/data/fluab/genes.gtf"
 
-cp ${outdir}/${outdb_prefix}/sequences.fasta  ${outdir}/data/fluab/sequences.fa 
+cmd_to_run=$(echo $cmd)
+eval $cmd_to_run
+
+cp ${outdir}/${outdb_prefix}/sequences.fasta  ${outdir}/snpeff/data/fluab/sequences.fa 
 # ---------------------------------------------
 # Step 13: Build SNP Database with snpEff
 echo "Building SNP database with snpEff..."
-snpEff build \
+cmd="snpEff build \
     -gtf22 -v \
-    -c "${outdir}/snpEff.config" \
+    -c ${outdir}/snpeff/snpEff.config \
     -noCheckCds -noCheckProtein \
     -maxErrorRate 0.2 \
-    fluab &> "${outdir}/log.gtf.txt"
+    fluab 2> ${outdir}/log.gtf.txt"
 
+cmd_to_run=$(echo $cmd)
+eval $cmd_to_run
 # ---------------------------------------------
 # Deactivate Conda Environment
 echo "Deactivating nf-fluab environment..."

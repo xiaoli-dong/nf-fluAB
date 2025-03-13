@@ -217,10 +217,11 @@ def reformat_bvbrc_csv(bvbrc, biosample_outdir):
             	
             if row['Segment'] not in list(segid2gname.keys()) + list(gname2segid.keys()):
                 continue
-
-            if row["Genome Status"] not in ["Complete", "complete"]:
+            if row["Genome Status"] in ["Deprecated", "Partial"]:
                 continue
-            
+            if row["Genome Quality"] in ["Poor"]:
+                continue
+
             if len(row['Host Common Name']) == 0 and (len(row['Host Name']) > 0):
                 row['Host Common Name'] = row['Host Name'].replace(" ", "_")
                 
@@ -302,16 +303,18 @@ parser.add_argument("--maxlen", type=int, default=-1, help = "max sequence lengt
 parser.add_argument("--maxambigs", type=int, default=0, help = "max number of ambigs bases", required=False)
 parser.add_argument("--bvbrc", help = "bvbrc csv file", required=True)
 parser.add_argument("--base_outdir", default=".", help = "base directory for output", required=False)
+parser.add_argument("--biosample_outdir", default=".", help = "directory for output the biosample downloaded", required=False)
+
 # Read arguments from command line
 args = parser.parse_args()
 
-biosample_outdir = os.path.join(args.base_outdir, "biosample_dir")
+#biosample_outdir = os.path.join(args.base_outdir, "biosample_dir")
 
 # Equivalent to 'mkdir -p dir' in Python
-os.makedirs(biosample_outdir, exist_ok=True)
+os.makedirs(args.biosample_outdir, exist_ok=True)
 
 #read bvbrc-genome metadata
-metadata_dict = reformat_bvbrc_csv(args.bvbrc, biosample_outdir)
+metadata_dict = reformat_bvbrc_csv(args.bvbrc, args.biosample_outdir)
 
 fasta = filterFasta(args.fasta, args.minlen, args.maxlen, args.maxambigs, metadata_dict)
 

@@ -8,6 +8,7 @@ include {
 
 include {
     SEQKIT_FX2TAB;
+    SEQKIT_FX2TAB as SEQKIT_FX2TAB_RAW_CONSENSUS;
 } from '../../modules/nf-core/seqkit/fx2tab'
 
 
@@ -22,7 +23,9 @@ workflow CONSENSUS {
         
         BCFTOOLS_CONSENSUS(vcf_tbi_fasta, mask_bed_file)
         ch_versions.mix(BCFTOOLS_CONSENSUS.out.versions)
-        
+
+        SEQKIT_FX2TAB_RAW_CONSENSUS(BCFTOOLS_CONSENSUS.out.fasta)
+        ch_versions = ch_versions.mix(SEQKIT_FX2TAB_RAW_CONSENSUS.out.versions)
         /*
         reformatted header, elimnated segments with too many
         ambiguious bases

@@ -39,7 +39,7 @@ workflow MAPPING_NANOPORE {
             }.set{ ch_input }
 
             MINIMAP2_ALIGN(ch_input.reads, ch_input.fasta, sam_format)
-            ch_versions = ch_versions.mix(MINIMAP2_ALIGN.out.versions.first())
+            ch_versions = ch_versions.mix(MINIMAP2_ALIGN.out.versions)
             sam = MINIMAP2_ALIGN.out.sam
             
         }
@@ -50,17 +50,17 @@ workflow MAPPING_NANOPORE {
         information and flags:
         */
         SAMTOOLS_FIXMATE(sam)
-        ch_versions = ch_versions.mix(SAMTOOLS_FIXMATE.out.versions.first())
+        ch_versions = ch_versions.mix(SAMTOOLS_FIXMATE.out.versions)
        
         SAMTOOLS_SORT (SAMTOOLS_FIXMATE.out.bam)
-        ch_versions = ch_versions.mix(SAMTOOLS_SORT.out.versions.first())
+        ch_versions = ch_versions.mix(SAMTOOLS_SORT.out.versions)
         
         // SAMTOOLS_INDEX (SAMTOOLS_SORT.out.bam)
-        // ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions.first())
+        // ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions)
         // bam_bai = SAMTOOLS_SORT.out.bam.join(SAMTOOLS_INDEX.out.bai)
         
         SAMTOOLS_COVERAGE_MAPPING(SAMTOOLS_SORT.out.bam_bai)
-        ch_versions = ch_versions.mix(SAMTOOLS_COVERAGE_MAPPING.out.versions.first())
+        ch_versions = ch_versions.mix(SAMTOOLS_COVERAGE_MAPPING.out.versions)
         
         
     emit:

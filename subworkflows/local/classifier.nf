@@ -23,7 +23,7 @@ workflow CLASSIFIER_BLAST {
         out_format = "tsv"
         
         BLAST_BLASTN(fasta, typing_db)
-        ch_versions = ch_versions.mix(BLAST_BLASTN.out.versions.first())
+        ch_versions = ch_versions.mix(BLAST_BLASTN.out.versions)
 
         CSVTK_ADD_HEADER_BLASTN(
             BLAST_BLASTN.out.tsv, 
@@ -84,7 +84,7 @@ workflow CLASSIFIER_NEXTCLADE{
       
         NEXTCLADE_RUN(ch_input.fasta, ch_input.dataset)
         
-        ch_versions = ch_versions.mix(NEXTCLADE_RUN.out.versions.first())
+        ch_versions = ch_versions.mix(NEXTCLADE_RUN.out.versions)
         CONCAT_NEXTCLADE(NEXTCLADE_RUN.out.tsv.map { cfg, tsv -> tsv }.collect().map { files -> tuple([id: "nextclade"], files)}, in_format, out_format )
 
  

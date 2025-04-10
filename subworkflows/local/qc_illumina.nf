@@ -39,13 +39,13 @@ workflow QC_ILLUMINA {
         out_format = "tsv"
 
         INPUT_STATS(reads)
-        ch_versions = ch_versions.mix(INPUT_STATS.out.versions.first())
+        ch_versions = ch_versions.mix(INPUT_STATS.out.versions)
         CONCAT_INPUT_STATS(INPUT_STATS.out.stats.map { cfg, stats -> stats }.collect().map { files -> tuple([id: "illumina_reads.input_seqstats"], files)}, in_format, out_format )
         
         //default
         if ( params.illumina_reads_qc_tool == 'bbduk' ){
             BBMAP_BBDUK(reads, adapter_fasta)
-            ch_versions = ch_versions.mix(BBMAP_BBDUK.out.versions.first())
+            ch_versions = ch_versions.mix(BBMAP_BBDUK.out.versions)
 
             //get rid of zero size contig file and avoid the downstream crash
             BBMAP_BBDUK.out.reads
@@ -56,7 +56,7 @@ workflow QC_ILLUMINA {
             save_trimmed_fail = false
             save_merged       = false
             FASTP ( reads, adapter_fasta, save_trimmed_fail, save_merged )
-            ch_versions = ch_versions.mix(FASTP.out.versions.first())
+            ch_versions = ch_versions.mix(FASTP.out.versions)
            
             //get rid of zero size contig file and avoid the downstream crash
             FASTP.out.reads
@@ -65,22 +65,22 @@ workflow QC_ILLUMINA {
         }
 
         TRIMMED_STATS(trimmed_reads)
-        ch_versions = ch_versions.mix(TRIMMED_STATS.out.versions.first())
+        ch_versions = ch_versions.mix(TRIMMED_STATS.out.versions)
 
         CONCAT_TRIMMED_STATS(TRIMMED_STATS.out.stats.map { cfg, stats -> stats }.collect().map { files -> tuple([id: "illumina_reads.trimmed_seqstats"], files)}, in_format, out_format )
-        ch_versions = ch_versions.mix(CONCAT_TRIMMED_STATS.out.versions.first())
+        ch_versions = ch_versions.mix(CONCAT_TRIMMED_STATS.out.versions)
 
         HOSTILE(trimmed_reads, "bowtie2", hostile_ref)
         HOSTILE.out.reads
             .filter {meta, reads -> reads[0].size() > 0 && reads[0].countFastq() > 0}
             .set { qc_reads }
-        ch_versions = ch_versions.mix(HOSTILE.out.versions.first())
+        ch_versions = ch_versions.mix(HOSTILE.out.versions)
 
         HOSTILE_STATS(qc_reads)
-        ch_versions = ch_versions.mix(HOSTILE_STATS.out.versions.first())
+        ch_versions = ch_versions.mix(HOSTILE_STATS.out.versions)
 
         CONCAT_HOSTILE_STATS(HOSTILE_STATS.out.stats.map { cfg, stats -> stats }.collect().map { files -> tuple([id: "illumina_reads.dehost_seqstats"], files)}, in_format, out_format )
-        ch_versions = ch_versions.mix(CONCAT_HOSTILE_STATS.out.versions.first())
+        ch_versions = ch_versions.mix(CONCAT_HOSTILE_STATS.out.versions)
         
     emit:
         input_stats = INPUT_STATS.out.stats

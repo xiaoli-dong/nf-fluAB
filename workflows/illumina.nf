@@ -175,6 +175,7 @@ workflow ILLUMINA {
     ch_versions.mix(SEEK_REFERENCES.out.versions)
 
     SEEK_REFERENCES.out.screen
+        .filter{ it[1] != null}
         .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 0}
         .set{ch_screen}
     //ch_screen.view()
@@ -361,26 +362,16 @@ workflow ILLUMINA {
                 [meta, tsv]  
         }.groupTuple()
     
-    
-    /* ch_merge = ch_screen.join(ch_coverage)//.view()
-        .join(consensus_stats)//.view()
-        .join(ch_typing)//.view()
-        .join(ch_nextclade_tsv)//.view()
-        .join(ch_nextclade_dbs)//.view()
-        .view() */
     ch_merge = ch_screen.join(ch_coverage, remainder: true)//.view()
         .join(consensus_stats, remainder: true)//.view()
         .join(ch_typing, remainder: true)//.view()
         .join(ch_nextclade_tsv, remainder: true)//.view()
         .join(ch_nextclade_dbs, remainder: true)//.view()
-        .view()
+    .view()
 
-//    ch_screen
-//         .join(ch_coverage, remainder: true)//.view()
-//         .join(consensus_stats, remainder: true)//.view()
-//         .join(ch_typing, remainder: true)//.view()
-//         .join(ch_nextclade_tsv, remainder: true)//.view()
-//         .join(ch_nextclade_dbs, remainder: true)//.view()
+    ch_merge.filter{
+        
+    }
     ch_merge.multiMap{
         it -> 
             screen:  it[1] != null ? [it[0], it[1]] : [[], []]
@@ -394,7 +385,6 @@ workflow ILLUMINA {
             ch_input
         }
         
-    ch_input.stats.view()
     CONSENSUS_REPORT(
         ch_input.stats, 
         ch_input.cov, 

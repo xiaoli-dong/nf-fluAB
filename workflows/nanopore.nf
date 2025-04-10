@@ -171,6 +171,7 @@ workflow NANOPORE {
     )
     ch_versions.mix(SEEK_REFERENCES.out.versions)
     SEEK_REFERENCES.out.screen
+        .filter{ it[1] != null}
         .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 0}
         .set{ch_screen}
     

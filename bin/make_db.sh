@@ -5,19 +5,21 @@
 # Sequence data, XML, and CSV files were downloaded from:
 # https://www.ncbi.nlm.nih.gov/labs/virus/vssi/#/virus?SeqType_s=Nucleotide&VirusLineage_ss=taxid:197911&VirusLineage_ss=taxid:197912&VirusLineage_ss=taxid:197913&VirusLineage_ss=taxid:1511083&LabHost_s=include on 2024-08-12
 # Meta data downloaded from: https://www.bv-brc.org/view/Taxonomy/11308#view_tab=genomes&filter=false
-# BVBRC_genome.csv (2024-08-23)
-
+# example cmd: sh make_db.sh -i sequences_nt.20250310.fasta -g BVBRC_genome.20250310.csv -d influenzaDB-20250310
+#sh ../bin/make_db.sh -i sequences_nt.20250331.fasta -o ./output -c 8 -g BVBRC_genome.20250331.csv -d influenzaDB-20250331
 # ---------------------------------------------
 # Usage function to display help message
 usage() {
     echo "Usage: $0 [options]"
     echo "Options:"
-    echo "  -i <input_fasta>    Input FASTA file (default: sequences.fasta)"
+    echo "  -i <input_fasta>    Input FASTA file (required)"
     echo "  -o <outdir>         Output directory (default: ./output)"
     echo "  -c <cpus>           Number of CPUs to use (default: 8)"
-    echo "  -g <genome_csv>     Path to BVBRC genome CSV file (default: BVBRC_genome.csv)"
-    echo "  -d <outdb_prefix>   Output database prefix (default: influenzaDB-20240823)"
+    echo "  -g <genome_csv>     Path to BVBRC genome CSV file (required)"
+    echo "  -d <outdb_prefix>   Output database prefix (default:influenzaDB)"
     echo "  -h                  Show this help message"
+    echo "Example:"
+    echo "  $0 -i sequences_nt.20250310.fasta -o ./output -c 8 -g BVBRC_genome.20250310.csv -d influenzaDB-20250310"
     exit 1
 }
 
@@ -27,9 +29,9 @@ outdir="./output"
 cpus=8
 genome_csv="BVBRC_genome.csv"
 prefix="sequences"
-outdb_prefix="influenzaDB-20240823"
+outdb_prefix="influenzaDB"
 gb_dir="./gb_dir"
-biosample_outdir="./biosample_dir"
+
 bindir=$(dirname "$0")
 
 # Parse command-line arguments
@@ -44,6 +46,11 @@ while getopts "i:o:c:g:d:h" opt; do
     esac
 done
 
+# Check if both arguments are provided
+if [ -z "$input_fasta" ] || [ -z "$genome_csv" ]; then
+    echo "Both -a and -b options are required."
+    usage
+fi
 # ---------------------------------------------
 # Conda Environment Handling
 
@@ -58,7 +65,7 @@ if [ "$env_exists" == "true" ]; then
 else
     echo "Error: Environment '$env_name' does not exist."
     echo "Please using the following command to creating it before running the script..."
-    echo "mamba create -n '$env_name' mmseqs2=15.6f452 mash=2.3 snpeff=5.2 vadr=1.6.4 biopython=1.84 entrez-direct=22.4 diamond=2.1.11 cd-hit=4.8.1 -y"
+    echo "mamba create -n '$env_name' mash=2.3 snpeff=5.2 vadr=1.6.4 biopython=1.84 entrez-direct=22.4 diamond=2.1.11 cd-hit=4.8.1 -y"
     exit 0
 fi
 #pip install requests Bio
@@ -85,11 +92,6 @@ echo "Filtering and reformatting FASTA sequences..."
 cmd="python ${bindir}/reformatSeqs.py \
         --fasta $input_fasta \
         --bvbrc $genome_csv \
-        --minlen 700 \
-        --maxlen 3000 \
-        --maxambigs 0 \
-        --base_outdir . \
-        --biosample_outdir ${biosample_outdir} \
         > ${prefix}.reformat.fasta 2> reformatSeq.log.txt"
 echo $cmd
 
@@ -110,20 +112,7 @@ cmd="cd-hit-est \
         2> ${outdir}/${prefix}.cluster0.99.log.txt"
 echo $cmd
 if ! [ -f "${rep_fasta}" ]; then
-    # mmseqs easy-cluster \
-    #     --threads "$cpus" \
-    #     -c 0.7 \
-    #     --cov-mode 0 \
-    #     --alignment-mode 3 \
-    #     --min-seq-id 0.99 \
-    #     --similarity-type 2 \
-    #     --cluster-mode 2 \
-    #     --cluster-reassign 1 \
-    #     -v 2 \
-    #     "${outdir}/${prefix}.reformat.fasta" \
-    #     "${outdir}/${prefix}.cluster0.99" \
-    #     tmp \
-    #     >& "${outdir}/${prefix}.cluster0.99.log.txt"
+
     cmd_to_run=$(echo $cmd)
     eval $cmd_to_run
     
@@ -203,20 +192,6 @@ cmd="cd-hit-est -c 0.97 -d 0 -g 1 -M 0 -T 8 -s 0.9 -aL 0.9 -aS 0.9 -p 1 -sc 1 \
 echo $cmd
 
 if ! [ -f "${rep_fasta}" ]; then
-    # mmseqs easy-cluster \
-    #     --threads "$cpus" \
-    #     -c 0.9 \
-    #     --cov-mode 0 \
-    #     --alignment-mode 3 \
-    #     --min-seq-id 0.97 \
-    #     --similarity-type 2 \
-    #     --cluster-mode 2 \
-    #     --cluster-reassign 1 \
-    #     -v 2 \
-    #     "${outdir}/${prefix}.annotate.cds.fasta" \
-    #     "${outdir}/${outdb_prefix}" \
-    #     tmp
-    
     cmd_to_run=$(echo $cmd)
     eval $cmd_to_run
 fi
@@ -295,7 +270,7 @@ echo "validating desc ..."
 cmd="python ${bindir}/validate_fludb_desc.py \
     ./viral_protein_dir/fluab_refseq_protein.fasta \
     ${rep_picked_fasta}.blastx_fmt6.tsv \
-    ./flu_protein_to_segment.csv \
+    ${bindir}/flu_protein_to_segment.csv \
     ${rep_picked_fasta} \
     >  ${outdir}/${outdb_prefix}.fasta"
 

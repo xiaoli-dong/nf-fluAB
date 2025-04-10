@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 import sys
 import argparse
-import csv
 from collections import defaultdict
 import re
 from csv import DictReader
 import os
-import xml.etree.ElementTree as ET
-import subprocess
 
 __author__ = 'Xiaoli Dong'
 __version__ = '0.1.0'
@@ -15,103 +12,113 @@ __maintainer__ = 'Xiaoli Dong'
 __email__ = 'xiaoli.dong@albertaprecisionlabs.ca'
 __status__ = 'Dev'
 
-def fetch_biosample(out_dir, biosample_id):
-    # Define the output file path
-    output_file = os.path.join(out_dir, f"{biosample_id}_metadata.xml")
-     # Check if the XML file already exists, and skip efetch if it does
-    if os.path.exists(output_file):
-        print(f"Skipping biosample ID {biosample_id}: XML file already exists.", file=sys.stderr)
-    else:
-        # Perform esearch (search the biosample database) and check for errors
-        try:
-            esearch_command = ["esearch", "-db", "biosample", "-query", biosample_id]
-            esearch_result = subprocess.run(esearch_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-            if esearch_result.returncode != 0:
-                print(f"Error: esearch failed for biosample ID {biosample_id}. Skipping.", file=sys.stderr)
-
-        except Exception as e:
-            print(f"Error: Exception occurred while running esearch for biosample ID {biosample_id}: {e}. Skipping.", file=sys.stderr)
+def count_ambiguous_bases(sequence):
+    ambiguous_bases = "RYSMKWBVDHNX"  # Set of ambiguous base codes
+    count = 0
     
+    # Loop through each base in the sequence and check if it's ambiguous
+    for base in sequence.upper():  # Convert to uppercase to handle both cases
+        if base in ambiguous_bases:
+            count += 1
+    return count
+def remove_whitespace_regex(input_string):
+    return re.sub(r'\s+', '', input_string)  # '\s+' matches all whitespace characters
 
-        # Perform efetch (fetch metadata for the biosample) and save to file
-        try:
-            efetch_command = ["efetch", "-format", "xml", "-db", "biosample", "-id", biosample_id]
-            efetch_result = subprocess.run(efetch_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-            if efetch_result.returncode != 0:
-                print(f"Error: efetch failed for biosample ID {biosample_id}. Skipping.", file=sys.stderr)
-        
-            # Save the fetched metadata to a file
-            #output_file = os.path.join(out_dir, f"{biosample_id}_metadata.xml")
-            with open(output_file, 'wb') as f:
-                f.write(efetch_result.stdout)
-
-        except Exception as e:
-            print(f"Error: Exception occurred while running efetch for biosample ID {biosample_id}: {e}. Skipping.", file=sys.stderr)
-    return output_file
-# Function to check for partial matching in attribute names
-def partial_match(attribute_name, match_list):
-    """Returns True if the attribute_name contains any of the strings in match_list"""
-    #return any(match.lower() in attribute_name.lower() for match in match_list)
-    attribute_name = attribute_name.lower()
-    # Use a list comprehension to find matches
-    matched_strings = [match for match in match_list if match.lower() in attribute_name.lower()]
-    return matched_strings
-
-def fetch_attributes(xml_file):
-    sample_data = {}
-    look_for_attributes = ["host scientific name", "host common name", "location", "geo_loc_name", "serotype", "subtype", "strain", "virus identifier"]
-    if os.path.exists(xml_file) and os.path.getsize(xml_file) > 0:
-        try:
-            # Parse the XML file
-            tree = ET.parse(xml_file)
-            root = tree.getroot()
-            # Iterate over all BioSample elements (if multiple samples exist in the XML)
-            for biosample in root.findall('BioSample'):
-                # Extracting the "accession" from the BioSample element
-                accession = biosample.attrib.get('accession')
-
-                # Extract the <Attributes> elements inside <BioSample>
-                attributes = biosample.find('Attributes')
-                sample_data["accession"] = accession # Start the row with basic BioSample info
-
-                # If user provided specific attributes, filter and extract only those
-                
-                for attribute in attributes.findall('Attribute'):
-                    attribute_name = attribute.attrib.get('attribute_name')
-                    mathched_attr = partial_match(attribute_name, look_for_attributes)
-
-                    if mathched_attr:
-                        #print(f"Get attribute provided for BioSample {accession} {attribute_name}...", file=sys.stderr)
-                    #     continue  # Skip this sample and go to the next one  
-                    # else:
-                        attribute_value = attribute.text
-                        #sample_data[attribute_name] = attribute_value  # Append the value to the row
-                        sample_data[mathched_attr[0]] = attribute_value  # Append the value to the row
-                        print(mathched_attr, file=sys.stderr)
-                        print(attribute_value, file=sys.stderr)
-
-        except ET.ParseError as e:
-            print(f"Error parsing XML: {e}", file=sys.stderr)
-    return sample_data
-        
-def filterFasta(file_path, minlen, maxlen, maxambigs, metadata_dict):
-    with open(file_path, 'r') as file:
-        
+"""
+Filter fasta:
+    seq len < seq_minlen 
+    seq len > seq_maxlen
+    The ambiguous number is > maxambigs 
+    add seq length to the end of header
+"""    
+def validate_sequences(file_path, output_file, seq_minlen, seq_maxlen, maxambigs):
+    seqids_above_cutoff = [] 
+    with open(file_path, 'r') as input_file, open(output_file, 'w') as output:
+        sequence = ""
         header = None
-        sequence_lines = []
-        # a lot of PB1 were assigned to segment 1 and PB2 were assigned to segment 2
-        #this is wrong. PB1 should be seg2 and pb2 should be seg1
-        correct_gene2seg_assigments = {}
+        for line in input_file:
+            if line.startswith('>'):
+                if header:
+                    sequence = remove_whitespace_regex(sequence)
+                    seqlen = len(sequence)
+                    ambiguous_count = count_ambiguous_bases(sequence)
+
+                    if (seq_minlen <= seqlen <= seq_maxlen) and (ambiguous_count <= maxambigs):
+                        
+                        # Write the sequence with the previous header, including its length
+                        output.write(f"{header} len={seqlen}\n")
+                        output.write(f"{sequence}\n")
+                        # Extract the sequence ID without the version number
+                        seqid = header.split(' ')[0][1:]
+
+                        seqids_above_cutoff.append(seqid)
+                # Write the current header (without any sequence yet)
+                header = line.strip()  # Remove newline characters
+                # Use regex to remove the version number (e.g., ".1", ".2", etc.)
+                header = re.sub(r'\.\d+', '', header)
+                sequence = ""  # Reset sequence
+            else:
+                sequence += line.strip()  # Add sequence lines, stripping newlines
+
+        # After the loop, write the last sequence with its header and length
+        if header:
+            sequence = remove_whitespace_regex(sequence)
+            seqlen = len(sequence)
+            ambiguous_count = count_ambiguous_bases(sequence)
+            if seq_minlen <= seqlen <= seq_maxlen and ambiguous_count < maxambigs:
+                # Write the sequence with the previous header, including its length
+                output.write(f"{header} len={seqlen}\n")
+                output.write(f"{sequence}\n")
+                # Extract the sequence ID without the version number
+                seqid = header.split(' ')[0][1:]
+                seqids_above_cutoff.append(seqid)
+
+    return  seqids_above_cutoff
+
+
+"""
+Extract and reformat fasta:
+    seq must passed all the cutoff 
+    seq has metadata available
+    seq has subtype/lineage available
+"""    
+def extract_refromat_fasta(file_path, metadata_dict):
+    
+    #filter sequence by length 
+    #https://pmc.ncbi.nlm.nih.gov/articles/PMC3074182/
+    segment_length = {
+        "1": 2341, 
+        "2": 2341, 
+        "3": 2233, 
+        "4": 1778, 
+        "5": 1565,  
+        "6": 1413, 
+        "7": 1027, 
+        "8": 890
+    }
+    with open(file_path, 'r') as file:
+        header = None
+        sequence_lines = [] 
         for line in file:
             line = line.strip()
             if line.startswith('>'):
+                #>PQ264394 |Influenza A virus (A/Massachusetts/47/2024(H3N2)) segment 6 neuraminidase (NA) gene, complete cds len=1442
                 if header:
-                    # Save the last sequence
-                    # remove all the whitespace characters (space, tab, newlines)
-                    sequence = ''.join(sequence_lines)
-                    filter_seq(header, sequence, int(minlen), int(maxlen), int(maxambigs), metadata_dict)
+                    seqid = header.split()[0]
+                    seqlen = int(header.split()[-1].split("=")[1])
+                    sequence = remove_whitespace_regex(''.join(sequence_lines))
+                    #print(f"{header} before checking metadata", file=sys.stderr)
+                    if seqid in metadata_dict:
+            
+                        metadata = metadata_dict[seqid]
+                        segid = metadata.split("|")[1]
+                        segid_avg_len = segment_length[segid]
+                        if segid_avg_len * 0.90 <= seqlen <= segid_avg_len * 1.10:
+                            print(f">{seqid} {metadata} len={seqlen}")
+                            print(sequence)
+                    else:
+                        # Handle case where sequence ID is not in metadata
+                        print(f"{seqid} has no metadata available", file=sys.stderr)
                        
                 header = line[1:]  # Remove the '>' character
                 sequence_lines = []
@@ -120,57 +127,62 @@ def filterFasta(file_path, minlen, maxlen, maxambigs, metadata_dict):
         
         # Save the last sequence
         if header:
-            sequence = ''.join(sequence_lines)
-            filter_seq(header, sequence, int(minlen), int(maxlen), int(maxambigs), metadata_dict)
-           
+            seqid = header.split()[0]
+            sequence = remove_whitespace_regex(''.join(sequence_lines))
+            if seqid in metadata_dict:
+                metadata = metadata_dict[seqid]
+                segid = metadata.split("|")[1]
+                segid_avg_len = segment_length[segid]
+                if segid_avg_len * 0.90 <= seqlen <= segid_avg_len * 1.10:
+                    print(f">{seqid} {metadata} len={seqlen}")
+                    print(sequence)
+            else:
+                # Handle case where sequence ID is not in metadata
+                print(f"{seqid} has no metadata available", file=sys.stderr)
         
-    #return sequences
+# Function to check if both 'H' and 'N' are in the string, ignoring case
+def contains_h_and_n(str):
+    str_lower = str.lower()
+    return 'h' in str_lower and 'n' in str_lower
+
+# Function to check if the string contains 'Yamagata' or 'Victoria', ignoring case
+def contains_yamagata_or_victoria(str):
+    str_lower = str.lower()
+    return 'yamagata' in str_lower or 'victoria' in str_lower 
+def starts_with_h(str):
+    return str.lower().startswith('h')
 """
-Filter out the sequeces:
-1) contain ambiguous bases
-2)
+extract metadata for all the sequences ids included in ids_above_cutoff
+exclude the ids:
+    no lineage/subtype availabe
+    genome is Deprecated
+    quality is poor
+    bad segment ids 
 """
-def filter_seq(header, sequence, minlen, maxlen, maxambigs, metadata_dict):
-    
-    allowed_bases=['A','T','G','C']
-    seqid = header.split()[0]
-    seqid_no_ver = seqid.split('.')[0]
-    total_atcg_count = len([b for b in sequence if b in allowed_bases])
-    seqlen = len(sequence)
-    count_ambig = seqlen - total_atcg_count
-
-    if seqid_no_ver in metadata_dict:
-
-        if count_ambig > maxambigs:
-            print(f"{seqid_no_ver} has ambiguous bases", file=sys.stderr)
-
-        elif seqlen < minlen:
-            print(
-                f"{seqid_no_ver} length={seqlen}, required minlen={minlen}",
-                file=sys.stderr 
-            )
-        elif maxlen != -1 and seqlen > maxlen:
-            print(
-                f"{seqid_no_ver} length={seqlen}, required maxlen={maxlen}",
-                file=sys.stderr
-            )
-        else:
-            # If sequence passes all filters.    
-            print(f">{seqid_no_ver} {metadata_dict[seqid_no_ver]}")
-            print(sequence)
-    # else:
-    #     # Handle case where sequence ID is not in metadata
-    #     print(f"{seqid_no_ver} has no metadata available", file=sys.stderr)
-
-
-
-def reformat_bvbrc_csv(bvbrc, biosample_outdir):
+def extract_metadata_from_bvbrc_csv(bvbrc, output_file):
 
     metadata = defaultdict(str)
+    segid2gname = {
+        "1": "PB2", 
+        "2": "PB1", 
+        "3": "PA", 
+        "4": "HA", 
+        "5": "NP",  
+        "6": "NA", 
+        "7": "M", 
+        "8": "NS"
+    }  
+    gname2segid = {
+        "PB2": "1",
+        "PB1": "2",
+        "PA": "3", 
+        "HA": "4", 
+        "NP": "5",  
+        "NA": "6", 
+        "M": "7", 
+        "NS": "8"
+    }
 
-    segid2gname = {"1": "PB2", "2": "PB1", "3": "PA", "4": "HA", "5": "NP",  "6": "NA", "7": "M", "8": "NS"}
-     
-    gname2segid = {"PB2": "1","PB1": "2","PA": "3", "HA": "4", "NP": "5",  "NA": "6", "M": "7", "NS": "8"}
     
     keys_to_include = [
             'GenBank Accessions', 
@@ -186,137 +198,107 @@ def reformat_bvbrc_csv(bvbrc, biosample_outdir):
     ]
 
     #print(*keys_to_include, sep="\t")
+    with open(bvbrc, 'r') as input_file, open(output_file, 'w') as output:
+    #with open(bvbrc, 'r') as f: 
 
-    with open(bvbrc, 'r') as f:
-
-        dict_reader = DictReader(f)
-        
-        """
-        filter partial sequences
-
-        """
+        dict_reader = DictReader(input_file) 
+        count = 0
         for row in dict_reader:
-            # print("******************************************************")
-            # print(row)
             extracted_columns = []
-            # Regex pattern to match "Influenza B virus"
-            flub_pattern = r"Influenza B virus"
-            # Search for the pattern
-            flub_match = re.search(flub_pattern, str(row))
+            lineage = None
+            is_flua = False
+            is_flub = False
+            valid_sub_type = None
             
-            # Regex pattern to match ";lineage:Victorial;"
-            flub_lineage_pattern = r";lineage:(\S+?);"
-            flub_lineage_match = re.search(flub_lineage_pattern, str(row))
 
-            # # it has 2277 complete sequences but most of them have the wrong segment id
-            # if row['BioProject Accession'] == 'PRJEB72255':
-            #     continue
-            # # 476 complete sequences and the annotaions are wrong
-            # if row['BioProject Accession'] == 'PRJEB67729':
-            #     continue
-            	
-            if row['Segment'] not in list(segid2gname.keys()) + list(gname2segid.keys()):
+            if row['Species'] == "Betainfluenzavirus influenzae":
+                is_flub = True
+            if row['Species'] == "Alphainfluenzavirus influenzae":
+                is_flua = True
+
+            if (not is_flua) and (not is_flub):
                 continue
-            if row["Genome Status"] in ["Deprecated", "Partial"]:
+           
+            if row["Genome Status"] in ["Deprecated"]:
                 continue
             if row["Genome Quality"] in ["Poor"]:
                 continue
+            if row['Segment'] not in list(segid2gname.keys()) + list(gname2segid.keys()):
+                continue
 
-            if len(row['Host Common Name']) == 0 and (len(row['Host Name']) > 0):
-                row['Host Common Name'] = row['Host Name'].replace(" ", "_")
-                
-            if (len(row['Isolation Country']) == 0) and (len(row['Geographic Location']) > 0):
-                row['Isolation Country'] = row['Geographic Location'].replace(" ", "_")
-
-            elif (len(row['Isolation Country']) == 0) and (len(row['Geographic Group']) > 0):
-                row['Isolation Country'] = row['Geographic Group'].replace(" ", "_")
-            
-            if (len(row['Subtype']) == 0) and  (len(row['Serovar']) > 0) and (row['Serovar'] != 'B'):
-                row['Subtype'] = row['Serovar']
-
-            if flub_match and flub_lineage_match:
-                # Extract the part after "lineage:" and before the semicolon
-                lineage = flub_lineage_match.group(1)
+            # extract lineage:  ";lineage:Victorial;"
+            lineage_pattern = r";lineage:(\S+?);"
+            lineage_match = re.search(lineage_pattern, str(row))
+            # flu B has no subtype, use lineage
+            if is_flub and lineage_match:
+                # Lineage is the part after "lineage:" and before the semicolon
+                lineage = lineage_match.group(1)
                 row['Subtype'] = lineage
 
-            #try to get metadata from biosample
-            if (len(row['BioSample Accession']) > 0) and ((len(row['Host Common Name']) == 0) or (len(row['Isolation Country']) == 0) or (len(row['Subtype']) == 0)): 
-               
-                biosample_id =  row['BioSample Accession']
-                biosample_xml_path = fetch_biosample(biosample_outdir, biosample_id)
-                
-                if os.path.exists(biosample_xml_path) and os.path.getsize(biosample_xml_path) > 0:
-                    print(f"parse biosample= {biosample_id} for {row['GenBank Accessions']}", file=sys.stderr)
-                    retrieved = fetch_attributes(biosample_xml_path)
-                    #look_for_attributes = ["host scientific name", "host common name", "location", "geo_loc_name", "serotype", "subtype", "strain", "virus identifier"]
-
-                    for key in retrieved.keys():
-                        #print(key, file=sys.stderr)
-                        if len(row['Host Common Name']) == 0 and key == "host common name":
-                            row['Host Common Name'] = retrieved['host common name'].replace(" ", "_")
-                        elif len(row['Host Common Name']) == 0 and key == "host scientific name":
-                            row['Host Common Name'] = retrieved['host scientific name'].replace(" ", "_")
-
-                        elif len(row['Isolation Country']) == 0 and key == 'location':
-                            row['Isolation Country'] =  retrieved['location'].replace(" ", "_")
-                        elif len(row['Isolation Country']) == 0 and key == 'geo_loc_name':
-                            row['Isolation Country'] =  retrieved['geo_loc_name'].replace(" ", "_")
-
-                        elif len(row['Subtype']) == 0 and key == 'serotype':
-                            row['Subtype'] =  retrieved['serotype'].replace(" ", "_")
-                        elif len(row['Subtype']) == 0 and key == 'subtype':
-                            row['Subtype'] =  retrieved['subtype'].replace(" ", "_")
-                        
-                        elif len(row['Strain']) == 0 and key == 'strain':
-                            row['Strain'] =  retrieved['strain'].replace(" ", "_")
-                        elif len(row['Strain']) == 0 and key == 'virus identifier':
-                            row['Strain'] =  retrieved['virus identifier'].replace(" ", "_")
-
+            subtype = row['Subtype'] 
+            if (not (contains_h_and_n(subtype) and starts_with_h(subtype))) and (not contains_yamagata_or_victoria(subtype)):
+                continue
+            # #exclude items whose subtype/lineage is not available or not valid
+            # valid_sub_type = re.match(r"^H|^N|^Yamagata|^Victoria", subtype)
+            # if valid_sub_type is None:
+            #     continue
+            #print(row, file=sys.stderr)
             subset_row_dict = dict(filter(lambda item: item[0] in keys_to_include, row.items()))
 
-            # in bvrc file, some of the entries is using gene name as segment id, fix it
+            # in bvrc file, some of the entries is using gene name as segment id in 'Segment' column, fix it
             if row['Segment'] in list(gname2segid.keys()):
                 subset_row_dict['Segment'] = gname2segid[row['Segment']]
             
             subset_row_dict['Protein'] = segid2gname[subset_row_dict['Segment']]
             
-
-            #some of the segment in the table are using protein name.
             for x in keys_to_include:
                 extracted_columns.append(subset_row_dict[x])
 
             extracted_columns = [x.replace(' ', "_") for x in extracted_columns]
             extracted_columns = ['na' if x == '' else x for x in extracted_columns]
-            #print(extracted_columns[0], '|'.join(extracted_columns[1:]))
-            metadata[extracted_columns[0]] = '|'.join(extracted_columns[1:])
+            seqid = extracted_columns[0]
+            desc = '|'.join(extracted_columns[1:])
+            if desc:
+                metadata[seqid] =  desc
+                #print(f"gggggggggggggggggg {seqid} = {desc}", file=sys.stderr)
+                # Write the sequence with the previous header, including its length
+                output.write(f"{seqid} {desc}\n")
 
             #print(*extracted_columns, sep="\t")
+            count += 1
+            if count %100 ==0:
+                print(f"************************* count={count}", file=sys.stderr)
+
     return metadata
+def main():
+    script_name = os.path.basename(__file__)
+    # Initialize parser
+    parser = argparse.ArgumentParser(
+        description=f"Example of {script_name} usage.",
+        epilog=(f"Example commands:\npython {script_name}\n\t--fasta seq_nt.fasta\n\t--bvbrc BVBRC_genome.csv\n\t> reformat.fasta 2> log.txt\n")
+        ,formatter_class=argparse.RawTextHelpFormatter
+    )
 
-# Initialize parser
-parser = argparse.ArgumentParser()
+    # Adding optional argument
+    parser.add_argument("-f", "--fasta", help = "fasta", required=True)
+    parser.add_argument("--minlen", type=int, default=800, help = "min sequence length", required=False)
+    parser.add_argument("--maxlen", type=int, default=2500, help = "max sequence length", required=False)
+    parser.add_argument("--maxambigs", type=int, default=0, help = "max number of ambigs bases", required=False)
+    parser.add_argument("--bvbrc", help = "bvbrc csv file", required=True)
+    
+    #python ../bin/reformatSeqs.py  --fasta sequences_nt.20250331.fasta --bvbrc BVBRC_genome.20250331.csv > sequences_nt.20250331.reformat.fasta  2> log.txt
+    # Read arguments from command line
+    args = parser.parse_args()
+    fasta_base_name = os.path.splitext(args.fasta)[0]  # Removes the suffix/extension
+    filtered_fasta = fasta_base_name + "_filter.fasta"
+    ids_above_cutoff = validate_sequences(args.fasta, filtered_fasta, args.minlen, args.maxlen, args.maxambigs)
+    #read bvbrc-genome metadata
+    print(f"*******************Start parsing bvbrc csv file", file=sys.stderr)
+    bvbrc_base_name = os.path.splitext(args.bvbrc)[0]  # Removes the suffix/extension
+    reformat_and_filtered_bvbrc_file = bvbrc_base_name + "_filter_reformat.csv"
+    metadata_dict =extract_metadata_from_bvbrc_csv(args.bvbrc, reformat_and_filtered_bvbrc_file)
+    print(f"*******************Finish parsing bvbrc csv file", file=sys.stderr)
+    extract_refromat_fasta(filtered_fasta, metadata_dict)
 
-# Adding optional argument
-parser.add_argument("-f", "--fasta", help = "fasta", required=True)
-parser.add_argument("--minlen", type=int, default=0, help = "min sequence length", required=False)
-parser.add_argument("--maxlen", type=int, default=-1, help = "max sequence length, will skip the option when the value is -1", required=False)
-parser.add_argument("--maxambigs", type=int, default=0, help = "max number of ambigs bases", required=False)
-parser.add_argument("--bvbrc", help = "bvbrc csv file", required=True)
-parser.add_argument("--base_outdir", default=".", help = "base directory for output", required=False)
-parser.add_argument("--biosample_outdir", default=".", help = "directory for output the biosample downloaded", required=False)
-
-# Read arguments from command line
-args = parser.parse_args()
-
-#biosample_outdir = os.path.join(args.base_outdir, "biosample_dir")
-
-# Equivalent to 'mkdir -p dir' in Python
-os.makedirs(args.biosample_outdir, exist_ok=True)
-
-#read bvbrc-genome metadata
-metadata_dict = reformat_bvbrc_csv(args.bvbrc, args.biosample_outdir)
-
-fasta = filterFasta(args.fasta, args.minlen, args.maxlen, args.maxambigs, metadata_dict)
-
-
-
+if __name__ == "__main__":
+    main()

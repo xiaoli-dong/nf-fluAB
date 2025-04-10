@@ -47,7 +47,7 @@ workflow VARIANTS_ILLUMINA {
 
             // Index VCF files
             BCFTOOLS_INDEX ( BCFTOOLS_SORT.out.vcf )
-            ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions.first())
+            ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions)
 
             // TABIX_TABIX(BCFTOOLS_SORT.out.vcf)  //emit [meta, tbi]
             // ch_versions.mix(TABIX_TABIX.out.versions)
@@ -70,7 +70,7 @@ workflow VARIANTS_ILLUMINA {
 
             // Index VCF files
             BCFTOOLS_INDEX ( BCFTOOLS_SORT.out.vcf )
-            ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions.first())
+            ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions)
 
             // TABIX_TABIX(BCFTOOLS_SORT.out.vcf)  //emit [meta, tbi]
             // ch_versions.mix(TABIX_TABIX.out.versions)

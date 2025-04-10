@@ -193,14 +193,8 @@ def main():
         #print(f"New Segment ID: {segid}|{segname}")
         new_value = segid + '|' + segname
         if new_value not in dna_description: 
-            # print(f"********************** {new_value}", file=sys.stderr)
-            # print(f"ID: {dna_seqid}, Description: {dna_description}", file=sys.stderr)
-
-            # Use regular expression to replace the value between the first and third vertical bars
-            modified_desc = re.sub(r'^[^|]+\|([^|]+)\|', lambda m: f'{m.group(0).split("|")[0]}|{new_value}|', dna_description)
-            #print(f"ID: {dna_seqid}, Description: {modified_desc}", file=sys.stderr)
-            #print(f"Sequence: {my_sequences[seq_id]}\n")
-            #print out sequences
+            modified_desc = re.sub(r'(\|)[^|]+(\|)[^|]+(\|)', f'|{new_value}|', dna_description)
+            print(f"ID: {dna_seqid}, Description: {dna_description} change to {modified_desc}", file=sys.stderr)
             print(f">{dna_seqid} {modified_desc}\n{dna_sequences[dna_seqid]}")
         else:
             print(f">{dna_seqid} {dna_description}\n{dna_sequences[dna_seqid]}")

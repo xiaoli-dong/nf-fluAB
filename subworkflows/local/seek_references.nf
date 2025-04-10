@@ -28,7 +28,7 @@ workflow SEEK_REFERENCES {
         screen_best = Channel.empty()
 
         MASH_SCREEN(reads, msh_db)
-        ch_versions = ch_versions.mix(MASH_SCREEN.out.versions.first())
+        ch_versions = ch_versions.mix(MASH_SCREEN.out.versions)
 
         /*
         if it has hits to multiple types, keep the rows with the best identity for each type
@@ -38,8 +38,7 @@ workflow SEEK_REFERENCES {
         MASH_FILTER(
             MASH_SCREEN.out.screen.filter{meta, screen -> screen.countLines() > 0}
         )
-        ch_versions = ch_versions.mix(MASH_FILTER.out.versions.first())
-
+        ch_versions = ch_versions.mix(MASH_FILTER.out.versions)
         MASH_FILTER.out.screen.filter{
             // if there is no best hit, the file only contains header
             meta, screen -> screen.countLines() > 1
@@ -59,7 +58,7 @@ workflow SEEK_REFERENCES {
         //seqids.view()
 
         SEQKIT_GREP(seqids, fasta_db)
-        ch_versions = ch_versions.mix(SEQKIT_GREP.out.versions.first())
+        ch_versions = ch_versions.mix(SEQKIT_GREP.out.versions)
         fasta = SEQKIT_GREP.out.fasta
 
         SAMTOOLS_FAIDX(fasta)

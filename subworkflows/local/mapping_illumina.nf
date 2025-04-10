@@ -42,13 +42,13 @@ workflow MAPPING_ILLUMINA {
             MINIMAP2_ALIGN(ch_input.reads, ch_input.fasta, sam_format)
             
             //MINIMAP2_ALIGN(reads, fasta, sam_format)
-            ch_versions = ch_versions.mix(MINIMAP2_ALIGN.out.versions.first())
+            ch_versions = ch_versions.mix(MINIMAP2_ALIGN.out.versions)
             sam = MINIMAP2_ALIGN.out.sam
         }
         else if(params.mapping_tool == 'bwa'){
            
             BWAMEM2_INDEX(fasta)
-            ch_versions = ch_versions.mix(BWAMEM2_INDEX.out.versions.first())
+            ch_versions = ch_versions.mix(BWAMEM2_INDEX.out.versions)
 
             reads.join(BWAMEM2_INDEX.out.index).multiMap{
                 it ->
@@ -58,7 +58,7 @@ workflow MAPPING_ILLUMINA {
 
             BWAMEM2_MEM ( ch_input.reads, ch_input.index) 
             //BWAMEM2_MEM ( reads, BWAMEM2_INDEX.out.index)
-            ch_versions = ch_versions.mix(BWAMEM2_MEM.out.versions.first())
+            ch_versions = ch_versions.mix(BWAMEM2_MEM.out.versions)
             sam = BWAMEM2_MEM.out.sam
         }
         /*
@@ -67,14 +67,14 @@ workflow MAPPING_ILLUMINA {
         information and flags:
         */
         SAMTOOLS_FIXMATE(sam)
-        ch_versions = ch_versions.mix(SAMTOOLS_FIXMATE.out.versions.first())
+        ch_versions = ch_versions.mix(SAMTOOLS_FIXMATE.out.versions)
 
         //sort from name order to coordinate order
         SAMTOOLS_SORT (SAMTOOLS_FIXMATE.out.bam)
-        ch_versions = ch_versions.mix(SAMTOOLS_SORT.out.versions.first())
+        ch_versions = ch_versions.mix(SAMTOOLS_SORT.out.versions)
         
         /* SAMTOOLS_COVERAGE_MAPPING(SAMTOOLS_SORT.out.bam_bai)
-        ch_versions = ch_versions.mix(SAMTOOLS_COVERAGE_MAPPING.out.versions.first())
+        ch_versions = ch_versions.mix(SAMTOOLS_COVERAGE_MAPPING.out.versions)
  */
         
     emit:

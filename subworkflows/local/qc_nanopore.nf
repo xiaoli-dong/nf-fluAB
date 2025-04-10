@@ -35,21 +35,21 @@ workflow QC_NANOPORE {
 
         ch_versions = Channel.empty()
         INPUT_STATS(reads)
-        ch_versions = ch_versions.mix(INPUT_STATS.out.versions.first())
+        ch_versions = ch_versions.mix(INPUT_STATS.out.versions)
         
         // QC
         PORECHOP_PORECHOP(reads)
-        ch_versions = ch_versions.mix(PORECHOP_PORECHOP.out.versions.first())
+        ch_versions = ch_versions.mix(PORECHOP_PORECHOP.out.versions)
         
         PORECHOP_PORECHOP.out.reads
                 .filter {meta, reads -> reads.size() > 0 && reads.countFastq() > 0}
                 .set { trimmed_reads }
         //trimmed_reads = PORECHOP_PORECHOP.out.reads
         PORECHOP_STATS(trimmed_reads)
-        ch_versions = ch_versions.mix(PORECHOP_STATS.out.versions.first())
+        ch_versions = ch_versions.mix(PORECHOP_STATS.out.versions)
         
         CHOPPER(trimmed_reads)
-        ch_versions = ch_versions.mix(CHOPPER.out.versions.first())
+        ch_versions = ch_versions.mix(CHOPPER.out.versions)
         
         
         CHOPPER.out.fastq
@@ -59,7 +59,7 @@ workflow QC_NANOPORE {
         CHOPPER_STATS(filtered_reads)
 
         HOSTILE(filtered_reads, "minimap2", hostile_ref)
-        ch_versions = ch_versions.mix(HOSTILE.out.versions.first())
+        ch_versions = ch_versions.mix(HOSTILE.out.versions)
         HOSTILE_STATS(HOSTILE.out.reads)
 
         qc_reads = HOSTILE.out.reads //gzip compressed

@@ -26,65 +26,6 @@ The pipeline takes a samplesheet and corresponding FASTQ files as input. It perf
 * consensus typing (blastn against typing database)
 * Lineage determination (nextclade)
 * Summary report
-### 1. Quality Control (QC) and De-hosting
-
-The raw sequencing data undergoes quality control checks to assess its quality and remove low-quality reads, ensuring that only high-quality data is used for downstream analysis. The following tools are used for sequence quality control:
-
-#### Short Reads:
-- **Short Read Statistics**: `seqkit stats`  
-  Collects basic statistics of short read sequences to assess quality.
-  
-- **Short Read Quality Control**: `fastp` or `bbduk`  
-  Performs adapter trimming, quality filtering, and base correction of the short reads.
-
-#### Long Reads:
-- **Nanopore Long Read Adapter Trimming**: `Porechop`  
-  Removes adapter sequences from Nanopore long reads.
-  
-- **Nanopore Long Read Quality and Length Filter**: `chopper`  
-  Filters long reads based on quality and length thresholds.
-
-- **Nanopore Long Read Statistics**: `seqkit stats`  
-  Provides summary statistics on long read data for quality assessment.
-
-#### De-hosting:
-- **Remove Host Sequences**: `Hostile`  
-  Removes contaminating host DNA sequences from both short and long read datasets.
-
-### 2. Reference Genome Search (Mash)
-
-Quality-controlled reads are "screened" against the influenza database using **Mash** to identify the most closely related reference genomes from the database.
-
-### 3. NGS Reads Mapping and Mapping File Preprocessing
-
-Align quality-controlled short or long reads to the selected reference genome using a suitable read aligner. The resulting alignment files are processed to generate a clean mapping file.
-
-- **Short Reads Mapping**: `bwa`, `minimap2`, `samtools`, `Picard`
-- **Long Reads Mapping**: `minimap2`, `samtools`, `Picard`
-
-### 4. Variant Calling and VCF File Preprocessing
-
-Variants (mutations) are called from the aligned reads, identifying SNPs (single nucleotide polymorphisms) and indels (insertions and deletions) in the viral genome. The VCF files are normalized and filtered to remove variants that may cause frameshifts.
-
-- **Short Read Variant Calling**: `freebayes`, `bcftools`, `snpEff`
-- **Long Read Variant Calling**: `Clair3`, `bcftools`, `snpEff`
-
-### 5. Consensus Sequence Generation
-
-Generate consensus sequences using `bcftools` for each viral segment based on the variant-calling step, allowing the reconstruction of the full viral genome or specific segments.
-
-### 6. Viral Segment Classification
-
-Classify and annotate the individual viral segments (e.g., HA, NA, PB2, PB1, etc.) to help characterize the influenza strain.
-
-- **Flu Typing**: `blastn` search against a flu typing database
-- **Clade Assignment**: `nextclade`
-
-### 7. Report Generation
-
-Summarize the analysis and generate the following reports:
-- **Analysis report**
-- **Software version control report**
 
 ## Pipeline Reference Databases
 

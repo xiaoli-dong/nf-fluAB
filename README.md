@@ -12,16 +12,15 @@ The pipeline takes a samplesheet and corresponding FASTQ files as input. It perf
 
 
 * QC
-  * Illumina QC ([fastp](https://github.com/OpenGene/fastp) or bbduk -> seqkit stats)
-  * Nanopore QC (porechop -> chopper -> seqkit stats)
-* dehost (hostile -> seqkit stats)
-* seek references (mash screen -> filter mash screen output)
+  * Illumina QC ([fastp](https://github.com/OpenGene/fastp) or[BBDuk](https://jgi.doe.gov/data-and-tools/software-tools/bbtools/bb-tools-user-guide/bbduk-guide/) -> [seqkit stats](https://bioinf.shenwei.me/seqkit/usage/#stats))
+  * Nanopore QC ([Porechop](https://github.com/rrwick/Porechop) -> [chopper](https://github.com/wdecoster/chopper) -> [seqkit stats](https://bioinf.shenwei.me/seqkit/usage/#stats))
+* dehost ([hostile](https://github.com/bede/hostile) -> [seqkit stats](https://bioinf.shenwei.me/seqkit/usage/#stats))
+* seek references ([mash screen](https://github.com/marbl/Mash) -> filter mash screen output)
 * mapping and post-processing bam files
-  * Illumina mapping (bwa or minimap2 -> samtools sort, index -> picard MARKDUPLICATES -> samtools coverage -> bedtools genomecov)
-  * Nanopore mapping (minimap2 -> samtools sort, index -> samtools coverage -> samtools coverage -> bedtools genomecov )
-  * variant calling and post-processing vcf files
-* variant calling
-  * Illumina data variant calling and post-processing (freebayes or bcftools -> bcftools sort, index -> bcftools norm -> bcftools filter (low quality, low depth) -> snpeff -> bcftools filter (frameshift)
+  * Illumina mapping ([bwa](https://github.com/lh3/bwa) or [minimap2](https://github.com/lh3/minimap2) -> [samtools sort, index](https://www.htslib.org/doc/samtools.html) -> [picard MARKDUPLICATES](https://broadinstitute.github.io/picard/command-line-overview.html#MarkDuplicates) -> [samtools coverage](https://www.htslib.org/doc/samtools-coverage.html) -> bedtools genomecov)
+  * Nanopore mapping (minimap2 -> samtools sort, index -> samtools coverage -> samtools coverage -> [bedtools genomecov](https://bedtools.readthedocs.io/en/latest/content/overview.html) )
+* variant calling and post-processing vcf files
+  * Illumina data variant calling and post-processing ([freebayes](https://github.com/freebayes/freebayes) or [bcftools](https://samtools.github.io/bcftools/bcftools.html) -> bcftools sort, index -> bcftools norm -> bcftools filter (low quality, low depth) -> [snpeff](https://pcingola.github.io/SnpEff/) -> bcftools filter (frameshift)
   * Nanopore data variant calling and post-processing (clair3 -> bcftools sort, index -> bcftools filter (low quality, low depth) -> snpeff -> bcftools filter (frameshift)
 * consensus calling (bcftools consensus -> SEQKIT fx2tab (stats) 
 * consensus typing (blastn against typing database)

@@ -2,7 +2,7 @@
 
 ## Introduction
 
-**nf-fluAB** is a bioinformatics pipeline for assembling and classifying influenza NGS sequence data generated using Illumina or Nanopore platforms. The pipeline is implemented with **Nextflow**, a workflow tool designed to run tasks across multiple compute infrastructures in a portable manner. It leverages **Docker** and **Singularity** containers, ensuring an easy installation process and highly reproducible results.
+**nf-fluAB** is a bioinformatics pipeline for the assembly, typing, and lineage assignment of influenza NGS data generated from Illumina or Nanopore platforms. Built with **Nextflow**,it enables portable and scalable execution across a range of computing environments. The use of Docker and Singularity containers ensures easy installation and highly reproducible results.
 
 ![Pipeline Diagram](assets/nf-fluab-drawio.svg)
 

@@ -25,7 +25,7 @@ The pipeline takes a samplesheet and corresponding FASTQ files as input. It perf
 * consensus calling (bcftools consensus -> SEQKIT fx2tab (stats) 
 * consensus typing (blastn against typing database)
 * Lineage determination (nextclade)
-* 
+* Summary report
 ### 1. Quality Control (QC) and De-hosting
 
 The raw sequencing data undergoes quality control checks to assess its quality and remove low-quality reads, ensuring that only high-quality data is used for downstream analysis. The following tools are used for sequence quality control:

@@ -10,6 +10,23 @@ The pipeline takes a samplesheet and corresponding FASTQ files as input. It perf
 
 ![Pipeline Diagram](assets/nf-fluab-drawio.svg)
 
+
+* QC
+  * Illumina QC ([fastp](https://github.com/OpenGene/fastp) or bbduk -> seqkit stats)
+  * Nanopore QC (porechop -> chopper -> seqkit stats)
+* dehost (hostile -> seqkit stats)
+* seek references (mash screen -> filter mash screen output)
+* mapping and post-processing bam files
+  * Illumina mapping (bwa or minimap2 -> samtools sort, index -> picard MARKDUPLICATES -> samtools coverage -> bedtools genomecov)
+  * Nanopore mapping (minimap2 -> samtools sort, index -> samtools coverage -> samtools coverage -> bedtools genomecov )
+  * variant calling and post-processing vcf files
+* variant calling
+  * Illumina data variant calling and post-processing (freebayes or bcftools -> bcftools sort, index -> bcftools norm -> bcftools filter (low quality, low depth) -> snpeff -> bcftools filter (frameshift)
+  * Nanopore data variant calling and post-processing (clair3 -> bcftools sort, index -> bcftools filter (low quality, low depth) -> snpeff -> bcftools filter (frameshift)
+* consensus calling (bcftools consensus -> SEQKIT fx2tab (stats) 
+* consensus typing (blastn against typing database)
+* Lineage determination (nextclade)
+* 
 ### 1. Quality Control (QC) and De-hosting
 
 The raw sequencing data undergoes quality control checks to assess its quality and remove low-quality reads, ensuring that only high-quality data is used for downstream analysis. The following tools are used for sequence quality control:

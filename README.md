@@ -30,12 +30,12 @@ The pipeline takes a samplesheet and corresponding FASTQ files as input. It perf
 ## Pipeline Reference Databases
 
 ### Build Influenza A and B fasta sequence database, mash sketch database, and snp database for snpEff 
-1. **Download fasta format sequecne data** and save it as sequences.fasta: Public available fasta sequence data downloaded from: https://www.ncbi.nlm.nih.gov/labs/virus/vssi/#/virus?SeqType_s=Nucleotide&VirusLineage_ss=taxid:197911&VirusLineage_ss=taxid:197912&VirusLineage_ss=taxid:197913&VirusLineage_ss=taxid:1511083&LabHost_s=include
-1. **Downlaod metadata** and save it as BVBRC_genome.csv from https://www.bv-brc.org/view/Taxonomy/11308#view_tab=genomes&filter=false 
+1. Public available fasta sequence data is downloaded from [Influenza Virus Data Hub](https://www.ncbi.nlm.nih.gov/labs/virus/vssi/#/virus?SeqType_s=Nucleotide&VirusLineage_ss=taxid:197911&VirusLineage_ss=taxid:197912&VirusLineage_ss=taxid:197913&VirusLineage_ss=taxid:1511083&LabHost_s=include) and saved as sequences.fasta
+1. Metadata is downloaded from [BV-BRC](https://www.bv-brc.org/view/Taxonomy/11308#view_tab=genomes&filter=false) and saved as BVBRC_genome.csv
 1. run the following command to build the database
    ```
    #create conda environment for creating database
-   mamba create -n '$env_name' mmseqs2=15.6f452 mash=2.3 snpeff=5.2 vadr=1.6.4 biopython=1.84 -y
+   mamba create -n '$env_name' mash=2.3 snpeff=5.2 vadr=1.6.4 biopython=1.84 entrez-direct=22.4 diamond=2.1.11 cd-hit=4.8.1 -y
    #running the script
    path_to_bin_directory/make_db.sh -i path_to/sequences.fasta -o outdir -c number_of_cpus -g path_to/BVBRC_genome.csv -d output_database_prefix
    

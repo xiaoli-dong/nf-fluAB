@@ -103,12 +103,12 @@
                 "flu_db_msh": {
                     "type": "string",
                     "description": "flu database mash sketch file",
-                    "default": "/nfs/APL_Genomics/db/prod/fluAB/influenzaDB-2024-08-26/influenzaDB-2024-08-26.msh"
+                    "default": "/nfs/APL_Genomics/db/prod/fluAB/influenzaDB/sequences.msh"
                 },
                 "flu_db_fasta": {
                     "type": "string",
                     "description": "Fasta format flu database file",
-                    "default": "/nfs/APL_Genomics/db/prod/fluAB/influenzaDB-2024-08-26/influenzaDB-2024-08-26.fasta"
+                    "default": "/nfs/APL_Genomics/db/prod/fluAB/influenzaDB/sequences.msh"
                 },
                 "mashthreshold": {
                     "type": "number",

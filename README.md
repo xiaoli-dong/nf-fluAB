@@ -40,8 +40,6 @@ The pipeline takes a samplesheet and corresponding FASTQ files as input. It perf
    path_to_bin_directory/make_db.sh -i path_to/sequences.fasta -o outdir -c number_of_cpus -g path_to/BVBRC_genome.csv -d output_database_prefix
    
    ```
-### Typing database
-### Nextclade database
 
 ---
 

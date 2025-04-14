@@ -53,24 +53,7 @@ To download and test the pipeline on a minimal dataset, run the following comman
 ```bash
 nextflow run xiaoli-dong/nf-fluAB -profile test,YOURPROFILE --outdir <OUTDIR>
 ```
-### 3. Customize Configuration
 
-Configuration is required for Nextflow to know how to fetch the necessary software. This is typically done through a config profile (`YOURPROFILE`). You can chain multiple config profiles in a comma-separated string.
-
-The pipeline includes several pre-configured profiles:
-
-- `docker`
-- `singularity`
-- `podman`
-- `shifter`
-- `charliecloud`
-- `conda`
-
-For example, to run the pipeline with Docker, use the following command:
-
-```bash
-nextflow run xiaoli-dong/nf-fluAB -profile test,docker
-```
 ### 4. Start Running Your Analysis
 
 To run the pipeline with your own input data, use the following command:

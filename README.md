@@ -46,19 +46,7 @@ The pipeline takes a samplesheet and corresponding FASTQ files as input. It perf
 ---
 
 ## Quick Start
-
-### 1. Install Nextflow (>=21.10.3)
-
-Install **Nextflow** along with one of the following for full pipeline reproducibility:
-- Docker
-- Singularity
-- Podman
-- Shifter
-- Charliecloud
-
-You can follow the [Nextflow installation guide](https://www.nextflow.io/docs/latest/getstarted.html). Conda can also be used to install Nextflow and manage software within pipelines. However, it is recommended to use Conda as a last resort. For more details, see the [Nextflow documentation](https://www.nextflow.io/docs/latest/usage.html#containerization).
-
-### 2. Download the Pipeline and Test It
+>If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with -profile test before running the workflow on actual data.
 
 To download and test the pipeline on a minimal dataset, run the following command:
 

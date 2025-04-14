@@ -74,15 +74,8 @@ sample1,NA,NA,sample1.fastq.gz
 sample2,NA,NA,sample2.fastq.gz
 sample3,NA,NA,sample3.fastq.gz
 ```
-To download and test the pipeline on a minimal dataset, run the following command:
 
-```bash
-nextflow run xiaoli-dong/nf-fluAB -profile test,YOURPROFILE --outdir <OUTDIR>
-```
-
-### 4. Start Running Your Analysis
-
-To run the pipeline with your own input data, use the following command:
+Now, you can run the pipeline using:
 
 ```bash
 nextflow run xiaoli-dong/nf-fluAB --input samplesheet.csv --outdir <OUTDIR> -profile <docker/singularity/podman/shifter/charliecloud/conda/institute>

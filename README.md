@@ -36,9 +36,9 @@ The pipeline takes a samplesheet and corresponding FASTQ files as input. It perf
 ### Build Influenza A and B reference databases
 The following procedure will build the influenza A and B reference database. Then by using hte reference fasta sequences generated, the script also generated the mash sketch database (msh file) and also the snpEff flu database
 
- 1. Public available fasta sequence data is downloaded from [Influenza Virus Data Hub](https://www.ncbi.nlm.nih.gov/labs/virus/vssi/#/virus?SeqType_s=Nucleotide&VirusLineage_ss=taxid:197911&VirusLineage_ss=taxid:197912&VirusLineage_ss=taxid:197913&VirusLineage_ss=taxid:1511083&LabHost_s=include) and saved as sequences.fasta
- 1. Metadata is downloaded from [BV-BRC](https://www.bv-brc.org/view/Taxonomy/11308#view_tab=genomes&filter=false) and saved as BVBRC_genome.csv
- 1. run the following command to build the database
+ 1. Public available fasta sequence data was downloaded from [Influenza Virus Data Hub](https://www.ncbi.nlm.nih.gov/labs/virus/vssi/#/virus?SeqType_s=Nucleotide&VirusLineage_ss=taxid:197911&VirusLineage_ss=taxid:197912&VirusLineage_ss=taxid:197913&VirusLineage_ss=taxid:1511083&LabHost_s=include) and saved as sequences.fasta
+ 1. Metadata was downloaded from [BV-BRC](https://www.bv-brc.org/view/Taxonomy/11308#view_tab=genomes&filter=false) and saved as BVBRC_genome.csv
+ 1. Run the following command to build the database
    ```
    #create conda environment for creating database
    mamba create -n '$env_name' mash=2.3 snpeff=5.2 vadr=1.6.4 biopython=1.84 entrez-direct=22.4 diamond=2.1.11 cd-hit=4.8.1 -y

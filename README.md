@@ -85,5 +85,12 @@ nextflow run xiaoli-dong/nf-fluAB --input samplesheet.csv --outdir <OUTDIR> -pro
 ## Credits
 
 - **nf-fluAB** was written by **Xiaoli Dong**.
-- The Illumina part of the pipeline was primarily based on Dr. **Matthew Croxen**'s **flu pipeline**.
-- Extensive support was provided by the **ProvLab Research Calgary Team**, Dr. Tarah Lynch, and Dr. Matthew Croxen for genrating testing dataset and technical inputs.
+- The Illumina part of the pipeline was primarily based on **Dr. Matthew Croxen**'s **flu pipeline**.
+- Extensive support was provided by the **ProvLab Research Team** in Calgary for generating sequencing data and conducting the pipeline testing:
+  >- **Linda Lee**
+  >- **Johanna M Thayer**
+  >- **Fitsum Getachew**
+  >- **Petya Kolva**
+  >- **Anita Wong**
+  >- **Kanti Pabbaraju**
+- **Dr. Tarah Lynch**, and **Dr. Matthew Croxen** for extensive technical inputs.

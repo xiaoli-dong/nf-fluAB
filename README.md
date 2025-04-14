@@ -33,19 +33,15 @@ The pipeline takes a samplesheet and corresponding FASTQ files as input. It perf
 3. [nextcade dataset](https://github.com/nextstrain/nextclade_data/tree/master/data/nextstrain/flu): used for flu A&B lineage determination
 4. Influenza A and B reference databases: used for seeking the closest related public available sequences and used as the references in the assembly. [Go to reference database building guide](#build-influenza-a-and-b-reference-databases)
 
-### Build Influenza A and B reference databases
-The following procedure will build the influenza A and B reference database. Then by using hte reference fasta sequences generated, the script also generated the mash sketch database (msh file) and also the snpEff flu database
-
- 1. Public available fasta sequence data was downloaded from [Influenza Virus Data Hub](https://www.ncbi.nlm.nih.gov/labs/virus/vssi/#/virus?SeqType_s=Nucleotide&VirusLineage_ss=taxid:197911&VirusLineage_ss=taxid:197912&VirusLineage_ss=taxid:197913&VirusLineage_ss=taxid:1511083&LabHost_s=include) and saved as sequences.fasta
- 1. Metadata was downloaded from [BV-BRC](https://www.bv-brc.org/view/Taxonomy/11308#view_tab=genomes&filter=false) and saved as BVBRC_genome.csv
- 1. Run the following command to build the database
-   ```
-   #create conda environment for creating database
-   mamba create -n '$env_name' mash=2.3 snpeff=5.2 vadr=1.6.4 biopython=1.84 entrez-direct=22.4 diamond=2.1.11 cd-hit=4.8.1 -y
-   #running the script
-   path_to_bin_directory/make_db.sh -i path_to/sequences.fasta -o outdir -c number_of_cpus -g path_to/BVBRC_genome.csv -d output_database_prefix
-   
-   ```
+>### Build Influenza A and B reference databases
+>The following procedure will build the influenza A and B reference database. Then by using hte reference fasta sequences generated, the script also generated the mash sketch database (msh file) and also the snpEff flu database
+> ```
+ >#create conda environment for creating database
+ >mamba create -n '$env_name' mash=2.3 snpeff=5.2 vadr=1.6.4 biopython=1.84 entrez-direct=22.4 diamond=2.1.11 cd-hit=4.8.1 -y
+ >#running the script
+ >path_to_bin_directory/make_db.sh -i path_to/sequences.fasta -o outdir -c number_of_cpus -g path_to/BVBRC_genome.csv -d output_database_prefix
+ >
+ >```
 
 ---
 

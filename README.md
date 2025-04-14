@@ -78,7 +78,7 @@ sample3,NA,NA,sample3.fastq.gz
 Now, you can run the pipeline using:
 
 ```bash
-nextflow run xiaoli-dong/nf-fluAB --input samplesheet.csv --outdir <OUTDIR> -profile <docker/singularity/podman/shifter/charliecloud/conda/institute>
+nextflow run xiaoli-dong/nf-fluAB --input samplesheet.csv --outdir <OUTDIR> -profile <docker/singularity/podman/shifter/charliecloud/conda/institute> --platform <illumina or nanopore>
 ```
 ## Credits
 

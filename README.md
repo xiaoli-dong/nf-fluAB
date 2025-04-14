@@ -49,7 +49,8 @@ The pipeline takes a samplesheet and corresponding FASTQ files as input. It perf
 >If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with -profile test before running the workflow on actual data.
 
 ### Check pipeline command line options
-You can clone or download the nf-fluab from github to local computer or you can directly run the pipeline from github. To check the pipeline command line options:
+You can download the nf-fluab from github to local computer or you can directly run the pipeline from github remotely. The following is an example how to check the command line options without downloading the pipeline locally:
+
 ```
 # running directly from github without downloading or cloning
 nextflow run xiaoli-dong/nf-fluab -r 7f72d6c --help

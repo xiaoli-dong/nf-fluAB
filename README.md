@@ -54,68 +54,7 @@ You can download the nf-fluab from github to local computer or you can directly 
 ```
 # running directly from github without downloading or cloning
 nextflow run xiaoli-dong/nf-fluab -r 7f72d6c --help
-N E X T F L O W  ~  version 23.04.1
-Launching `https://github.com/xiaoli-dong/nf-fluab` [pensive_hugle] DSL2 - revision: 7f72d6cefbace3f02b7c52a2421cbd08f15692f5
 
-
-------------------------------------------------------
-                                        ,--./,-.
-        ___     __   __   __   ___     /,-._.--~'
-  |\ | |__  __ /  ` /  \ |__) |__         }  {
-  | \| |       \__, \__/ |  \ |___     \`-._,-`-,
-                                        `._,._,'
-  nf-core/influenza v1.0.2-g7f72d6c
-------------------------------------------------------
-Typical pipeline command:
-
-  nextflow run nf-core/influenza --input samplesheet.csv --genome GRCh37 -profile docker
-
-Input/output options
-  --input                      [string]  Path to comma-separated file containing information about the samples in the experiment.
-  --outdir                     [string]  The output directory where the results will be saved. You have to use absolute paths to storage on Cloud 
-                                         infrastructure. 
-  --platform                   [string]  Specifies the sequencing platform of the input reads - available options are 'illumina|nanopore'. [default: 
-                                         illumina] 
-  --email                      [string]  Email address for completion summary.
-
-qc_options
-  --skip_illumina_reads_qc     [boolean] skip illumina read qc step [default: false]
-  --illumina_reads_qc_tool     [string]  illumina read quality processing tool, the available options are 'fastp|bbduk'. [default: fastp]
-  --flu_primers                [string]  flu sequencing primer [default: /nfs/APL_Genomics/db/prod/fluAB/flu-primers.fa]
-  --hostile_human_ref_bowtie2  [string]  hostile human genome index file [default: 
-                                         /nfs/APL_Genomics/db/prod/hostile/bowtie2_indexes/human-t2t-hla.argos-bacteria-985_rs-viral-202401_ml-phage-202401] 
-  --hostile_human_ref_minimap2 [string]  hostile human reference genome for minimap2 [default: 
-                                         /nfs/APL_Genomics/db/prod/hostile/minimap2_ref/human-t2t-hla.argos-bacteria-985_rs-viral-202401_ml-phage-202401.fa.gz] 
-
-retrieve_reference_options
-  --flu_db_msh                 [string]  flu database mash sketch file [default: /nfs/APL_Genomics/db/prod/fluAB/influenzaDB/sequences.msh]
-  --flu_db_fasta               [string]  Fasta format flu database file [default: /nfs/APL_Genomics/db/prod/fluAB/influenzaDB/sequences.msh]
-  --mashthreshold              [number]  mash screen minimum identity to report [default: 0.9]
-  --max_p_value                [number]  mash screen Maximum p-value to report. [default: 0.1]
-
-reference_based_assembly_options
-  --mapping_tool               [string]  illumina read mapping tool. The available options are: 'minimap2|bwa'. [default: minimap2]
-  --variant_caller             [string]  variant caller. The available options are 'bcftools|freebayes|clair3' [default: bcftools]
-  --mindepth                   [integer] require at least this depth to process a site for variants. [default: 10]
-  --lower_ambiguity_freq       [number]  lowest alt frequency for a site to be considered in generating consensus. [default: 0.25]
-  --upper_ambiguity_freq       [number]  upper alt frequency for a site to be considered in generating consensus site as iupac. [default: 0.75]
-
-annotation_options
-  --typing_db                  [string]  typing database [default: /nfs/APL_Genomics/db/prod/fluAB/typing.fa]
-  --nextclade_dataset_base     [string]  nextclade database base directory [default: /nfs/APL_Genomics/db/prod/fluAB/nextclade]
-  --minblastident              [integer] blastn search typing_db minimum percent identity. [default: 70]
-  --minblastcov                [integer] blastn search agaist typing_db percent minimum  query coverage per hsp. [default: 75]
-
-!! Hiding 19 params, use --show_hidden_params to show them !!
-------------------------------------------------------
-If you use nf-core/influenza for your analysis please cite:
-
-* The nf-core framework
-  https://doi.org/10.1038/s41587-020-0439-x
-
-* Software dependencies
-  https://github.com/nf-core/influenza/blob/master/CITATIONS.md
-------------------------------------------------------
 ```
 To download and test the pipeline on a minimal dataset, run the following command:
 

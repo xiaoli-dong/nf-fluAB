@@ -31,7 +31,7 @@ The pipeline takes a samplesheet and corresponding FASTQ files as input. It perf
 1. [Influenza A and B  primer sequences](assets/flu-primers.fa): used for sequence data qulaity control process
 2. [flu typing database](assets/typing.fa): used for assembled segment typing 
 3. [nextcade dataset](https://github.com/nextstrain/nextclade_data/tree/master/data/nextstrain/flu): used for flu A&B lineage determination
-4. Influenza A and B reference databases: used for seeking the closest related public available sequences and used as the references in the assembly. [Go to reference database building guide]()
+4. Influenza A and B reference databases: used for seeking the closest related public available sequences and used as the references in the assembly. [Go to reference database building guide](#build-influenza-a-and-b-reference-databases)
 
 ### Build Influenza A and B reference databases
 sfasdfdasfdsa

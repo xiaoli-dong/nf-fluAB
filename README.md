@@ -55,6 +55,25 @@ You can download the nf-fluab from github to local computer or you can directly 
 # running directly from github without downloading or cloning
 nextflow run xiaoli-dong/nf-fluab -r 7f72d6c --help
 ```
+To run the analysis with your data, prepare a csv format samplesheet, which contains the sequenence information for each of your samples, as input. The samplesheet can contain only Illumina data or only nanopore data, it cannot not accept data from both Illumina and nanopore data in one analysis. See below for what the samplesheet looks like:
+
+Illumina data analysis sample sheet example
+```
+sample,fastq_1,fastq_2,long_fastq
+# comment lines will be ignoreed
+sample1,sample1_R1.fastq.gz,sample1_R2.fastq.gz,NA
+sample2,sample2_R1.fastq.gz,sample2_R2.fastq.gz,NA
+sample3,sample3_R1.fastq.gz,sample3_R2.fastq.gz,NA
+```
+
+Nanopore data analysis sample sheet example
+```
+sample,fastq_1,fastq_2,long_fastq
+# comment lines will be ignoreed
+sample1,NA,NA,sample1.fastq.gz
+sample2,NA,NA,sample2.fastq.gz
+sample3,NA,NA,sample3.fastq.gz
+```
 To download and test the pipeline on a minimal dataset, run the following command:
 
 ```bash

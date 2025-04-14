@@ -27,7 +27,11 @@ The pipeline takes a samplesheet and corresponding FASTQ files as input. It perf
 * Lineage determination (nextclade)
 * Summary report
 
-## Pipeline Reference Databases
+## Pipeline required reference sequences and databases
+1. [Influenza A and B](asset/) primer sequences: used for sequence data qulaity control process
+2. flu typing database: used for assembled segment typing 
+3. nextcade dataset: used for flu A&B lineage determination
+4. flu A&B reference database: used for seeking the closest related public available sequences and used as the references in the assembly
 
 ### Build Influenza A and B fasta sequence database, mash sketch database, and snp database for snpEff 
 1. Public available fasta sequence data is downloaded from [Influenza Virus Data Hub](https://www.ncbi.nlm.nih.gov/labs/virus/vssi/#/virus?SeqType_s=Nucleotide&VirusLineage_ss=taxid:197911&VirusLineage_ss=taxid:197912&VirusLineage_ss=taxid:197913&VirusLineage_ss=taxid:1511083&LabHost_s=include) and saved as sequences.fasta

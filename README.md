@@ -54,7 +54,6 @@ You can download the nf-fluab from github to local computer or you can directly 
 ```
 # running directly from github without downloading or cloning
 nextflow run xiaoli-dong/nf-fluab -r 7f72d6c --help
-
 ```
 To download and test the pipeline on a minimal dataset, run the following command:
 

@@ -15,7 +15,7 @@ __status__ = 'Dev'
 def count_ambiguous_bases(sequence):
     ambiguous_bases = "RYSMKWBVDHNX"  # Set of ambiguous base codes
     count = 0
-    
+
     # Loop through each base in the sequence and check if it's ambiguous
     for base in sequence.upper():  # Convert to uppercase to handle both cases
         if base in ambiguous_bases:
@@ -26,13 +26,13 @@ def remove_whitespace_regex(input_string):
 
 """
 Filter fasta:
-    seq len < seq_minlen 
+    seq len < seq_minlen
     seq len > seq_maxlen
-    The ambiguous number is > maxambigs 
+    The ambiguous number is > maxambigs
     add seq length to the end of header
-"""    
+"""
 def validate_sequences(file_path, output_file, seq_minlen, seq_maxlen, maxambigs):
-    seqids_above_cutoff = [] 
+    seqids_above_cutoff = []
     with open(file_path, 'r') as input_file, open(output_file, 'w') as output:
         sequence = ""
         header = None
@@ -44,14 +44,16 @@ def validate_sequences(file_path, output_file, seq_minlen, seq_maxlen, maxambigs
                     ambiguous_count = count_ambiguous_bases(sequence)
 
                     if (seq_minlen <= seqlen <= seq_maxlen) and (ambiguous_count <= maxambigs):
-                        
+
                         # Write the sequence with the previous header, including its length
                         output.write(f"{header} len={seqlen}\n")
                         output.write(f"{sequence}\n")
                         # Extract the sequence ID without the version number
                         seqid = header.split(' ')[0][1:]
-
                         seqids_above_cutoff.append(seqid)
+                    else:
+                        print(f"validate_sequences:: {header}", file=sys.stderr)
+                        print(f"validate_sequences:: {seqlen} is outside the acceptable range [{seq_minlen}, {seq_maxlen}] or {ambiguous_count} > {maxambigs}", file=sys.stderr)
                 # Write the current header (without any sequence yet)
                 header = line.strip()  # Remove newline characters
                 # Use regex to remove the version number (e.g., ".1", ".2", etc.)
@@ -72,33 +74,39 @@ def validate_sequences(file_path, output_file, seq_minlen, seq_maxlen, maxambigs
                 # Extract the sequence ID without the version number
                 seqid = header.split(' ')[0][1:]
                 seqids_above_cutoff.append(seqid)
+            else:
+                print(f"validate_sequences:: {header}", file=sys.stderr)
+                print(f"validate_sequences:: {seqlen} is outside the acceptable range [{seq_minlen}, {seq_maxlen}] or {ambiguous_count} > {maxambigs}", file=sys.stderr)
 
     return  seqids_above_cutoff
 
 
 """
 Extract and reformat fasta:
-    seq must passed all the cutoff 
+    seq must passed all the cutoff
     seq has metadata available
     seq has subtype/lineage available
-"""    
+"""
 def extract_refromat_fasta(file_path, metadata_dict):
-    
-    #filter sequence by length 
+
+    #filter sequence by length
     #https://pmc.ncbi.nlm.nih.gov/articles/PMC3074182/
     segment_length = {
-        "1": 2341, 
-        "2": 2341, 
-        "3": 2233, 
-        "4": 1778, 
-        "5": 1565,  
-        "6": 1413, 
-        "7": 1027, 
+        "1": 2341,
+        "2": 2341,
+        "3": 2233,
+        "4": 1778,
+        "5": 1565,
+        "6": 1413,
+        "7": 1027,
         "8": 890
     }
+    low_len_ratio = 0.75
+    high_len_ratio = 1.25
+
     with open(file_path, 'r') as file:
         header = None
-        sequence_lines = [] 
+        sequence_lines = []
         for line in file:
             line = line.strip()
             if line.startswith('>'):
@@ -109,22 +117,26 @@ def extract_refromat_fasta(file_path, metadata_dict):
                     sequence = remove_whitespace_regex(''.join(sequence_lines))
                     #print(f"{header} before checking metadata", file=sys.stderr)
                     if seqid in metadata_dict:
-            
+
                         metadata = metadata_dict[seqid]
                         segid = metadata.split("|")[1]
                         segid_avg_len = segment_length[segid]
-                        if segid_avg_len * 0.90 <= seqlen <= segid_avg_len * 1.10:
+                        len_cutoff_low =  segid_avg_len * low_len_ratio
+                        len_cutoff_high = segid_avg_len * high_len_ratio
+                        if len_cutoff_low <= seqlen <= len_cutoff_high:
                             print(f">{seqid} {metadata} len={seqlen}")
                             print(sequence)
+                        else:
+                            print(f"extract_refromat_fasta:: {seqid}-segment-{segid} {seqlen} is outside the acceptable range [{len_cutoff_low}, {len_cutoff_high}] ", file=sys.stderr)
                     else:
                         # Handle case where sequence ID is not in metadata
-                        print(f"{seqid} has no metadata available", file=sys.stderr)
-                       
+                        print(f"extract_refromat_fasta:: {seqid} has no metadata available", file=sys.stderr)
+
                 header = line[1:]  # Remove the '>' character
                 sequence_lines = []
             else:
                 sequence_lines.append(line)
-        
+
         # Save the last sequence
         if header:
             seqid = header.split()[0]
@@ -133,13 +145,18 @@ def extract_refromat_fasta(file_path, metadata_dict):
                 metadata = metadata_dict[seqid]
                 segid = metadata.split("|")[1]
                 segid_avg_len = segment_length[segid]
-                if segid_avg_len * 0.90 <= seqlen <= segid_avg_len * 1.10:
+                len_cutoff_low =  segid_avg_len * low_len_ratio
+                len_cutoff_high = segid_avg_len * high_len_ratio
+
+                if len_cutoff_low <= seqlen <= len_cutoff_high:
                     print(f">{seqid} {metadata} len={seqlen}")
                     print(sequence)
+                else:
+                    print(f"extract_refromat_fasta:: {seqid} {seqlen} is outside the acceptable range [{len_cutoff_low}, {len_cutoff_high}] ", file=sys.stderr)
             else:
                 # Handle case where sequence ID is not in metadata
-                print(f"{seqid} has no metadata available", file=sys.stderr)
-        
+                print(f"extract_refromat_fasta:: {seqid} has no metadata available", file=sys.stderr)
+
 # Function to check if both 'H' and 'N' are in the string, ignoring case
 def contains_h_and_n(str):
     str_lower = str.lower()
@@ -148,7 +165,7 @@ def contains_h_and_n(str):
 # Function to check if the string contains 'Yamagata' or 'Victoria', ignoring case
 def contains_yamagata_or_victoria(str):
     str_lower = str.lower()
-    return 'yamagata' in str_lower or 'victoria' in str_lower 
+    return 'yamagata' in str_lower or 'victoria' in str_lower
 def starts_with_h(str):
     return str.lower().startswith('h')
 """
@@ -157,41 +174,41 @@ exclude the ids:
     no lineage/subtype availabe
     genome is Deprecated
     quality is poor
-    bad segment ids 
+    bad segment ids
 """
 def extract_metadata_from_bvbrc_csv(bvbrc, output_file):
 
     metadata = defaultdict(str)
     segid2gname = {
-        "1": "PB2", 
-        "2": "PB1", 
-        "3": "PA", 
-        "4": "HA", 
-        "5": "NP",  
-        "6": "NA", 
-        "7": "M", 
+        "1": "PB2",
+        "2": "PB1",
+        "3": "PA",
+        "4": "HA",
+        "5": "NP",
+        "6": "NA",
+        "7": "M",
         "8": "NS"
-    }  
+    }
     gname2segid = {
         "PB2": "1",
         "PB1": "2",
-        "PA": "3", 
-        "HA": "4", 
-        "NP": "5",  
-        "NA": "6", 
-        "M": "7", 
+        "PA": "3",
+        "HA": "4",
+        "NP": "5",
+        "NA": "6",
+        "M": "7",
         "NS": "8"
     }
 
-    
+
     keys_to_include = [
-            'GenBank Accessions', 
-            'Host Common Name', 
-            'Segment', 
+            'GenBank Accessions',
+            'Host Common Name',
+            'Segment',
             'Protein',
-            'Subtype', 
-            'Isolation Country', 
-            'Strain',  
+            'Subtype',
+            'Isolation Country',
+            'Strain',
             'H1 Clade Global',
             'H1 Clade US',
             'H5 Clade'
@@ -199,9 +216,9 @@ def extract_metadata_from_bvbrc_csv(bvbrc, output_file):
 
     #print(*keys_to_include, sep="\t")
     with open(bvbrc, 'r') as input_file, open(output_file, 'w') as output:
-    #with open(bvbrc, 'r') as f: 
+    #with open(bvbrc, 'r') as f:
 
-        dict_reader = DictReader(input_file) 
+        dict_reader = DictReader(input_file)
         count = 0
         for row in dict_reader:
             extracted_columns = []
@@ -209,7 +226,7 @@ def extract_metadata_from_bvbrc_csv(bvbrc, output_file):
             is_flua = False
             is_flub = False
             valid_sub_type = None
-            
+
 
             if row['Species'] == "Betainfluenzavirus influenzae":
                 is_flub = True
@@ -217,13 +234,17 @@ def extract_metadata_from_bvbrc_csv(bvbrc, output_file):
                 is_flua = True
 
             if (not is_flua) and (not is_flub):
+                print(f"extract_metadata_from_bvbrc_csv:: {row['GenBank Accessions']} is not fluAB", file=sys.stderr)
                 continue
-           
+
             if row["Genome Status"] in ["Deprecated"]:
+                print(f"extract_metadata_from_bvbrc_csv:: {row['GenBank Accessions']} is deprecated", file=sys.stderr)
                 continue
             if row["Genome Quality"] in ["Poor"]:
+                print(f"extract_metadata_from_bvbrc_csv:: {row['GenBank Accessions']} is poor quality", file=sys.stderr)
                 continue
             if row['Segment'] not in list(segid2gname.keys()) + list(gname2segid.keys()):
+                print(f"extract_metadata_from_bvbrc_csv:: {row['GenBank Accessions']} has invalidate segment name or id", file=sys.stderr)
                 continue
 
             # extract lineage:  ";lineage:Victorial;"
@@ -235,8 +256,9 @@ def extract_metadata_from_bvbrc_csv(bvbrc, output_file):
                 lineage = lineage_match.group(1)
                 row['Subtype'] = lineage
 
-            subtype = row['Subtype'] 
+            subtype = row['Subtype']
             if (not (contains_h_and_n(subtype) and starts_with_h(subtype))) and (not contains_yamagata_or_victoria(subtype)):
+                print(f"extract_metadata_from_bvbrc_csv:: {row['GenBank Accessions']} has invalide subtype - {subtype}", file=sys.stderr)
                 continue
             # #exclude items whose subtype/lineage is not available or not valid
             # valid_sub_type = re.match(r"^H|^N|^Yamagata|^Victoria", subtype)
@@ -248,9 +270,9 @@ def extract_metadata_from_bvbrc_csv(bvbrc, output_file):
             # in bvrc file, some of the entries is using gene name as segment id in 'Segment' column, fix it
             if row['Segment'] in list(gname2segid.keys()):
                 subset_row_dict['Segment'] = gname2segid[row['Segment']]
-            
+
             subset_row_dict['Protein'] = segid2gname[subset_row_dict['Segment']]
-            
+
             for x in keys_to_include:
                 extracted_columns.append(subset_row_dict[x])
 
@@ -263,7 +285,8 @@ def extract_metadata_from_bvbrc_csv(bvbrc, output_file):
                 #print(f"gggggggggggggggggg {seqid} = {desc}", file=sys.stderr)
                 # Write the sequence with the previous header, including its length
                 output.write(f"{seqid} {desc}\n")
-
+            else:
+                print(f"extract_metadata_from_bvbrc_csv:: {row['GenBank Accessions']} has no desc", file=sys.stderr)
             #print(*extracted_columns, sep="\t")
             count += 1
             if count %100 ==0:
@@ -281,11 +304,14 @@ def main():
 
     # Adding optional argument
     parser.add_argument("-f", "--fasta", help = "fasta", required=True)
-    parser.add_argument("--minlen", type=int, default=800, help = "min sequence length", required=False)
-    parser.add_argument("--maxlen", type=int, default=2500, help = "max sequence length", required=False)
+    #parser.add_argument("--minlen", type=int, default=800, help = "min sequence length", required=False)
+    #parser.add_argument("--maxlen", type=int, default=2500, help = "max sequence length", required=False)
+    parser.add_argument("--minlen", type=int, default=500, help = "min sequence length", required=False)
+    parser.add_argument("--maxlen", type=int, default=10000, help = "max sequence length", required=False)
+
     parser.add_argument("--maxambigs", type=int, default=0, help = "max number of ambigs bases", required=False)
     parser.add_argument("--bvbrc", help = "bvbrc csv file", required=True)
-    
+
     #python ../bin/reformatSeqs.py  --fasta sequences_nt.20250331.fasta --bvbrc BVBRC_genome.20250331.csv > sequences_nt.20250331.reformat.fasta  2> log.txt
     # Read arguments from command line
     args = parser.parse_args()

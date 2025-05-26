@@ -7,6 +7,7 @@
 # Meta data downloaded from: https://www.bv-brc.org/view/Taxonomy/11308#view_tab=genomes&filter=false
 # example cmd: sh make_db.sh -i sequences_nt.20250310.fasta -g BVBRC_genome.20250310.csv -d influenzaDB-20250310
 #sh ../bin/make_db.sh -i sequences_nt.20250331.fasta -o ./output -c 8 -g BVBRC_genome.20250331.csv -d influenzaDB-20250331
+#sh ../bin/make_db.sh -i sequences_nt.20250310.fasta -o ./output -c 8 -g BVBRC_genome.20250310.csv -d influenzaDB-20250310 >& log.txt &
 # ---------------------------------------------
 # Usage function to display help message
 usage() {
@@ -115,10 +116,10 @@ if ! [ -f "${rep_fasta}" ]; then
 
     cmd_to_run=$(echo $cmd)
     eval $cmd_to_run
-    
+
 fi
 
-# Step 2.2: 
+# Step 2.2:
 echo "Running pick repseq..."
 rep_picked_fasta="${outdir}/${prefix}.cluster0.99_rep_picked.fasta"
 rep_picked_clstr="${rep_picked_fasta}.clstr"
@@ -139,7 +140,7 @@ fi
 # ---------------------------------------------
 # Step 3: Trim Terminal Ambiguities
 echo "Trimming terminal ambiguities..."
-cmd="fasta-trim-terminal-ambigs.pl ${rep_picked_fasta} > ${outdir}/${prefix}.vadr_trim.fasta"
+cmd="fasta-trim-terminal-ambigs.pl --minlen 500 --maxlen 10000 ${rep_picked_fasta} > ${outdir}/${prefix}.vadr_trim.fasta"
 echo $cmd
 
 if ! [ -f "${outdir}/${prefix}.vadr_trim.fasta" ]; then
@@ -362,7 +363,7 @@ cmd="python ${bindir}/coding2gtf22.py \
 cmd_to_run=$(echo $cmd)
 eval $cmd_to_run
 
-cp ${outdir}/${outdb_prefix}/sequences.fasta  ${outdir}/snpeff/data/fluab/sequences.fa 
+cp ${outdir}/${outdb_prefix}/sequences.fasta  ${outdir}/snpeff/data/fluab/sequences.fa
 # ---------------------------------------------
 # Step 13: Build SNP Database with snpEff
 echo "Building SNP database with snpEff..."

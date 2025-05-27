@@ -11,10 +11,11 @@ process CONSENSUS_REPORT{
     tuple val(meta), path(stats)
     tuple val(meta), path(cov)
     tuple val(meta), path(typing)
-    tuple val(meta), val(nextclade_csv) 
-    tuple val(meta), val(nextclade_dbnames) 
+    tuple val(meta), val(nextclade_csv)
+    tuple val(meta), val(nextclade_dbnames)
     tuple val(meta), path(ref_screen)
     tuple val(meta), val(dbver)
+    tuple val(meta), val(pipelinever)
 
     output:
     tuple val(meta), path("${prefix}.csv"), emit: csv
@@ -22,7 +23,7 @@ process CONSENSUS_REPORT{
 
     when:
     task.ext.when == null || task.ext.when
-   
+
     script:
     def args = task.ext.args ?: ''
     prefix = task.ext.prefix ?: "${meta.id}"
@@ -33,7 +34,7 @@ process CONSENSUS_REPORT{
     def nextclade_csv_files = nextclade_csv ? "--c-nextclade-files ${nextclade_csv}" : ""
     def nextclade_db_files = nextclade_dbnames ? "--c-nextclade-dbnames ${nextclade_dbnames}" : ""
     def mashscreen_file = ref_screen ? "--c-mashscreen-file ${ref_screen}" : ""
-    
+
     """
     consensus_summary.py \\
         ${mashscreen_file} \\
@@ -43,9 +44,10 @@ process CONSENSUS_REPORT{
         ${nextclade_csv_files} \\
         ${nextclade_db_files} \\
         --db-ver ${dbver} \\
+        --pipeline-ver ${pipelinever} \\
         > ${prefix}.csv
 
-   
+
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: \$(python --version | sed 's/Python //g')

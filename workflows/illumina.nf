@@ -17,29 +17,29 @@ WorkflowIllumina.initialise(params, log, valid_params)
 
 // TODO nf-core: Add all file path parameters for the pipeline to the list below
 // Check input path parameters to see if they exist
-def checkPathParamList = [ 
-    params.input, 
-    params.hostile_human_ref_minimap2, 
+def checkPathParamList = [
+    params.input,
+    params.hostile_human_ref_minimap2,
     params.hostile_human_ref_bowtie2,
-    params.flu_primers, 
-    params.typing_db, 
-    params.flu_db_msh, 
+    params.flu_primers,
+    params.typing_db,
+    params.flu_db_msh,
     params.flu_db_fasta,
     params.nextclade_dataset_base
 ]
 
-for (param in checkPathParamList) { 
-    if (param) { 
-        file(param, checkIfExists: true) 
-    } 
+for (param in checkPathParamList) {
+    if (param) {
+        file(param, checkIfExists: true)
+    }
 }
 
 // Check mandatory parameters
-if (params.input) { 
-    ch_input = file(params.input) 
-} 
-else { 
-    exit 1, 'Input samplesheet not specified!' 
+if (params.input) {
+    ch_input = file(params.input)
+}
+else {
+    exit 1, 'Input samplesheet not specified!'
 }
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -107,7 +107,7 @@ include {
 } from '../modules/nf-core/bedtools/genomecov/main.nf'
 
 //
-// MODULE: developed locally 
+// MODULE: developed locally
 //
 include {
     CONSENSUS_REPORT
@@ -137,7 +137,7 @@ workflow ILLUMINA {
     INPUT_CHECK (ch_input)
     ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
     illumina_reads = INPUT_CHECK.out.shortreads
-    
+
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         sequence quality control
@@ -168,11 +168,13 @@ workflow ILLUMINA {
     ch_seq_header = Channel.empty()
 
     SEEK_REFERENCES(
-        illumina_reads, 
-        PREPARE_REFERENCES.out.ch_flu_db_msh, 
+        illumina_reads,
+        PREPARE_REFERENCES.out.ch_flu_db_msh,
         PREPARE_REFERENCES.out.ch_flu_db_fasta
     )
-    ch_versions.mix(SEEK_REFERENCES.out.versions)
+    //SEEK_REFERENCES.out.versions.view()
+    //SEEK_REFERENCES.out.screen.view()
+    ch_versions = ch_versions.mix(SEEK_REFERENCES.out.versions)
 
     SEEK_REFERENCES.out.screen
         .filter{ it[1] != null}
@@ -186,7 +188,7 @@ workflow ILLUMINA {
     SEEK_REFERENCES.out.seq_header
         .filter{meta, seq_header -> seq_header.size() > 0 && seq_header.countLines() > 0}
         .set{ch_seq_header}
-    
+
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         pair sample reads with the identified references
@@ -204,8 +206,8 @@ workflow ILLUMINA {
         ch_input.illumina_reads,
         ch_input.fasta
     )
-    ch_versions.mix(MAPPING_ILLUMINA.out.versions)
-    
+     ch_versions = ch_versions.mix(MAPPING_ILLUMINA.out.versions)
+
 
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -226,8 +228,8 @@ workflow ILLUMINA {
 
     ch_coverage = Channel.empty()
     PREPROCESS_BAM(ch_input.bam_bai, ch_input.fasta, ch_input.fai, ch_input.seq_header)
-    ch_versions.mix(PREPROCESS_BAM.out.versions)
-    
+     ch_versions = ch_versions.mix(PREPROCESS_BAM.out.versions)
+
     PREPROCESS_BAM.out.coverage
         .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 0}
         .set{ch_coverage}
@@ -246,7 +248,7 @@ workflow ILLUMINA {
         .set { ch_input }
 
     VARIANTS_ILLUMINA(ch_input.bam_bai, ch_input.fasta_fai)
-    ch_versions.mix(VARIANTS_ILLUMINA.out.versions)
+    ch_versions = ch_versions.mix(VARIANTS_ILLUMINA.out.versions)
 
 
     /*
@@ -263,7 +265,9 @@ workflow ILLUMINA {
 
         //bed file of the low depth regions < params.mindepth
     BEDTOOLS_GENOMECOV_LOWDEPTH(ch_input, [], "bed")
-    
+    ch_versions = ch_versions.mix(BEDTOOLS_GENOMECOV_LOWDEPTH.out.versions)
+
+
     VARIANTS_ILLUMINA.out.vcf_tbi.join(ch_fasta_fai)
         .join(BEDTOOLS_GENOMECOV_LOWDEPTH.out.genomecov)
         .multiMap{
@@ -275,12 +279,13 @@ workflow ILLUMINA {
         }
 
     PREPROCESS_VCF(
-        ch_input.vcf_tbi, 
-        ch_input.fasta, 
-        params.snpeff_db, 
-        PREPARE_REFERENCES.out.ch_snpeff_config, 
+        ch_input.vcf_tbi,
+        ch_input.fasta,
+        params.snpeff_db,
+        PREPARE_REFERENCES.out.ch_snpeff_config,
         PREPARE_REFERENCES.out.ch_snpeff_dataDir
     )
+     ch_versions = ch_versions.mix(PREPROCESS_VCF.out.versions)
 
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -288,8 +293,8 @@ workflow ILLUMINA {
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
 
-     
-    
+
+
     PREPROCESS_VCF.out.vcf_tbi
         .join(ch_fasta_fai)
         .join(BEDTOOLS_GENOMECOV_LOWDEPTH.out.genomecov)
@@ -304,7 +309,8 @@ workflow ILLUMINA {
     consensus_fasta = Channel.empty()
 
     CONSENSUS(ch_input.vcf_tbi_fasta, ch_input.mask)
-    ch_versions.mix(CONSENSUS.out.versions)
+     ch_versions = ch_versions.mix(CONSENSUS.out.versions)
+
     CONSENSUS.out.stats
         //.filter{ it != null}
         .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 0}
@@ -322,7 +328,7 @@ workflow ILLUMINA {
     */
     ch_typing = Channel.empty()
     CLASSIFIER_BLAST(CONSENSUS.out.fasta, PREPARE_REFERENCES.out.ch_typing_db)
-    ch_versions.mix(CLASSIFIER_BLAST.out.versions)
+    ch_versions = ch_versions.mix(CLASSIFIER_BLAST.out.versions)
     CLASSIFIER_BLAST.out.tsv
         //.filter{ it != null}
         .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 1}
@@ -339,8 +345,8 @@ workflow ILLUMINA {
 
     //ch_input.consensus.view()
     CLASSIFIER_NEXTCLADE(ch_input.consensus, ch_input.typing)
-    ch_versions.mix(CLASSIFIER_NEXTCLADE.out.versions)
-    
+    ch_versions = ch_versions.mix(CLASSIFIER_NEXTCLADE.out.versions)
+
      /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     producce consensus report
@@ -352,28 +358,30 @@ workflow ILLUMINA {
     ch_nextclade_dbs = CLASSIFIER_NEXTCLADE.out.dbname
         //.filter{ it != null}
         .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 1}
-        .groupTuple()
+        .map{
+            meta, tsv ->
+                meta.remove("seqid")
+                [meta, tsv]
+        }.groupTuple()//.view()
+
+        //.groupTuple().view()
     ch_nextclade_tsv = CLASSIFIER_NEXTCLADE.out.tsv
         //.filter{ it != null}
         .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 1}
         .map{
             meta, tsv ->
                 meta.remove("seqid")
-                [meta, tsv]  
-        }.groupTuple()
-    
+                [meta, tsv]
+        }.groupTuple()//.view()
+
     ch_merge = ch_screen.join(ch_coverage, remainder: true)//.view()
         .join(consensus_stats, remainder: true)//.view()
         .join(ch_typing, remainder: true)//.view()
         .join(ch_nextclade_tsv, remainder: true)//.view()
         .join(ch_nextclade_dbs, remainder: true)//.view()
-    .view()
-
-    ch_merge.filter{
-        
-    }
+    //.view()
     ch_merge.multiMap{
-        it -> 
+        it ->
             screen:  it[1] != null ? [it[0], it[1]] : [[], []]
             cov:  it[2] != null ? [it[0], it[2]] : [[], []]
             stats:  it[3] != null ? [it[0], it[3]] : [[], []]
@@ -381,21 +389,24 @@ workflow ILLUMINA {
             nextclade_tsv: it[5] != null ? [it[0], it[5].join(',')] : [[], []]
             nextclade_dbname: it[6] != null ? [it[0], it[6].join(',')] : [[], []]
             dbver: [it[0], params.flu_db_ver]
+            pipelinever: [it[0], "${workflow.manifest.version}"]
         }.set{
             ch_input
         }
-        
+
     CONSENSUS_REPORT(
-        ch_input.stats, 
-        ch_input.cov, 
-        ch_input.typing, 
-        ch_input.nextclade_tsv, 
-        ch_input.nextclade_dbname, 
-        ch_input.screen,  
-        ch_input.dbver
+        ch_input.stats,
+        ch_input.cov,
+        ch_input.typing,
+        ch_input.nextclade_tsv,
+        ch_input.nextclade_dbname,
+        ch_input.screen,
+        ch_input.dbver,
+        ch_input.pipelinever
     )
-    
-    
+    ch_versions = ch_versions.mix(CONSENSUS_REPORT.out.versions)
+
+
     CONCAT_CONSENSU_REPORT(
         CONSENSUS_REPORT.out.csv.map { cfg, stats -> stats }.collect()//.view()
             .map{
@@ -407,7 +418,7 @@ workflow ILLUMINA {
         },
         "csv",
         "csv"
-    )  
+    )
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )

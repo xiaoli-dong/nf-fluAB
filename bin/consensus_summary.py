@@ -47,17 +47,17 @@ def parse_consensus_stats(stats_file):
             stats_dict[seqid]['pct_completeness'] = round(100*(1 - int(row["N"]) / int(row["length"])), 2)
             seqid2ref_dict[seqid] = refid
 
-    sorted_stats_dict = {i: stats_dict[i] for i in sorted(stats_dict.keys())}        
+    sorted_stats_dict = {i: stats_dict[i] for i in sorted(stats_dict.keys())}
 
     #print(sorted_stats_dict)
     for key, value_dict in sorted_stats_dict.items():
         print("key*********************" + key, file=sys.stderr)
-        
+
     return sorted_stats_dict, seqid2ref_dict
 
 
 def parse_consensus_coverage_file(coverage_file):
-    
+
     """
     parse "samtools coverage" output
     #rname  startpos        endpos  numreads        covbases        coverage        meandepth       meanbaseq       meanmapq
@@ -118,7 +118,7 @@ def parse_typing_file(blast_tabular_output):
     with open(blast_tabular_output, "r", encoding="utf8") as csvfile:
             reader = csv.DictReader(csvfile, delimiter="\t")
             cols_to_keep = ["sseqid", "pident", "mismatch", "gapopen", "evalue", "qcovs"]
-            
+
             for row in reader:
                 #print(type(row))
                 id = row.pop("qseqid")
@@ -136,10 +136,10 @@ def parse_typing_file(blast_tabular_output):
 
 
 def parse_nextclade_files(nextclade_tsv_outputs, sep):
-    
+
     """
     parse nextclade tsv output file
-    
+
     """
     nextclade_dict = {}
 
@@ -172,10 +172,10 @@ def parse_nextclade_files(nextclade_tsv_outputs, sep):
     return sorted_nextclade_dict
 
 def parse_nextclade_dbnames(nextclade_dbnames, sep):
-    
+
     """
     parse nextclade tsv output file
-    
+
     """
     nextclade_dict = {}
 
@@ -198,20 +198,20 @@ def parse_nextclade_dbnames(nextclade_dbnames, sep):
         with open(dbname, "r", encoding="utf8") as nextclade_db_file:
             reader = csv.DictReader(nextclade_db_file, delimiter=sep)
             for row in reader:
-                
+
                 id = row.pop("seqName")
                 nextclade_dict[id] = {}
                 nextclade_dict[id]["clade_database"] = row["clade_database"]
 
     sorted_nextclade_dict = {i: nextclade_dict[i] for i in sorted(nextclade_dict.keys())}
-    
+
     return sorted_nextclade_dict
 
 
-def parse_mashcreen_file(mashscreen_output, c_seqid2ref_dict, dbver):
+def parse_mashcreen_file(mashscreen_output, c_seqid2ref_dict, dbver, pipelinever):
 
     """
-    parse mash screen ouput: 
+    parse mash screen ouput:
     identity        shared-hashes   median-multiplicity     p-value query-ID        query-comment
     0.997519        635/669 5773    0       MH356668        Human|7|M|H1N1|Kenya|A/Kenya/035/2018|A|na|na|na
     0.987753        772/1000        16      0       KY697327        Human|5|NP|H3N2|USA|A/Gainesville/13/2016|na|na|na|na
@@ -243,13 +243,14 @@ def parse_mashcreen_file(mashscreen_output, c_seqid2ref_dict, dbver):
                 id = row.pop("query-ID")
                 mashscreen_dict[id] = {}
                 mashscreen_dict[id]['influenza_db_version'] = dbver
+                mashscreen_dict[id]['nf-fluAB_version'] = pipelinever
                 for col in cols_to_keep:
                     mashscreen_dict[id]['ref_' + col] = row[col]
     for seqid, refid in c_seqid2ref_dict.items():
         contig2mash_dict[seqid] = mashscreen_dict[refid]
 
     sorted_contig2mash_dict = {i: contig2mash_dict[i] for i in sorted(contig2mash_dict.keys())}
-    
+
     return sorted_contig2mash_dict
 
 
@@ -260,9 +261,9 @@ def dict_merge(*args, add_keys=True):
     assert len(args) >= 2, "dict_merge requires at least two dicts to merge"
     rtn_dct = args[0].copy()
     merge_dicts = args[1:]
-    
+
     for merge_dct in merge_dicts:
-       
+
         if add_keys is False:
             merge_dct = {key: merge_dct[key] for key in set(rtn_dct).intersection(set(merge_dct))}
         for k, v in merge_dct.items():
@@ -305,7 +306,7 @@ def main():
         default=None,
         help=f"Path to blastn outfmt 6  produced output\n",
     )
-    
+
     parser.add_argument(
         "-n",
         "--c-nextclade-files",
@@ -330,10 +331,15 @@ def main():
         default=None,
         help=f"flu database version\n",
     )
-   
-    
+    parser.add_argument(
+        "-p",
+        "--pipeline-ver",
+        default=None,
+        help=f"nf-fluAB version\n",
+    )
+
     args = parser.parse_args()
-    
+
     c_stats_dict,  c_seqid2ref_dict = parse_consensus_stats(args.c_stats_file)
     c_cov_dict = parse_consensus_coverage_file(args.c_coverage_file)
 
@@ -341,47 +347,48 @@ def main():
         refid = cid.split("-")[-1].split("_")[-1]
         if refid in c_cov_dict:
             c_stats_dict[cid].update(c_cov_dict[refid])
-    
+
 
     c_typing_dict = parse_typing_file(args.c_typing_file)
-    
+
     c_nextclade_dict = parse_nextclade_files(args.c_nextclade_files, "\t")
-    
+
     c_nextclade_dbnames  = parse_nextclade_dbnames(args.c_nextclade_dbnames, "\t")
 
-    c2mash_dict  = parse_mashcreen_file(args.c_mashscreen_file, c_seqid2ref_dict, args.db_ver)
-    
+    c2mash_dict  = parse_mashcreen_file(args.c_mashscreen_file, c_seqid2ref_dict, args.db_ver, args.pipeline_ver)
+
     total_summary = dict_merge(c_stats_dict, c_typing_dict, c_nextclade_dict, c_nextclade_dbnames, c2mash_dict)
     total_summary = dict_merge(c_stats_dict, c_typing_dict, c_nextclade_dict, c_nextclade_dbnames, c2mash_dict)
-    
+
     jsonString = json.dumps(total_summary, indent=4)
-   
+
     print(jsonString, file=sys.stderr)
 
     """ json_summary_file = open(f"{args.prefix}.json", "w")
     json_summary_file.write(jsonString)
     json_summary_file.close() """
-    
+
     field_names = [
-        "gene_length", 
-        "total_ATCG", 
+        "gene_length",
+        "total_ATCG",
         "total_nonATCG",
-        "total_N", 
-        "pct_completeness", 
+        "total_N",
+        "pct_completeness",
         "pct_Ns",
-        "numreads_mapped", 
-        "covbases", 
-        "coverage", 
-        "meandepth", 
-        "clade", 
-        "clade_database", 
+        "numreads_mapped",
+        "covbases",
+        "coverage",
+        "meandepth",
+        "clade",
+        "clade_database",
         "type",
         "influenza_db_version",
-        "typing_sseqid", 
-        "typing_pident", 
-        "typing_mismatch", 
-        "typing_gapopen", 
-        "typing_evalue", 
+        "nf-fluAB_version",
+        "typing_sseqid",
+        "typing_pident",
+        "typing_mismatch",
+        "typing_gapopen",
+        "typing_evalue",
         "typing_qcovs",
         "ref_identity",
         "ref_shared-hashes",
@@ -391,7 +398,7 @@ def main():
 
     for cid in sorted(total_summary.keys()):
         values = [cid]
-       
+
         for field in field_names:
             if field in total_summary[cid]:
                 if isinstance(total_summary[cid][field], int) or  isinstance(total_summary[cid][field], float):

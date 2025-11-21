@@ -26,18 +26,18 @@ EOF
 expand_ranges() {
   local ranges=$1
   local result=()
+
   IFS=',' read -ra parts <<< "$ranges"
   for part in "${parts[@]}"; do
     if [[ $part =~ ^([0-9]+)-([0-9]+)$ ]]; then
       for ((i=${BASH_REMATCH[1]}; i<=${BASH_REMATCH[2]}; i++)); do
         result+=("$i")
       done
-    elif [[ $part =~ ^[0-9]+$ ]]; then
-      result+=("$part")
     else
-      echo "Warning: Ignoring invalid range component '$part'" >&2
+      result+=("$part")
     fi
   done
+
   echo "${result[@]}"
 }
 
@@ -46,34 +46,34 @@ output_dir="./nf-fluAB_analysis"
 input_dir=""
 run=""
 sample_spec=""
-script_dir=$(realpath "$(dirname "$0")")
+script_dir=$(dirname "$(readlink -f "$0")")
 
 # Parse command-line arguments
 while getopts ":i:r:s:o:h" opt; do
   case $opt in
-    i)
-      if ! input_dir=$(realpath "$OPTARG" 2>/dev/null); then
-        echo "Error: Invalid input directory: $OPTARG" >&2
-        exit 1
-      fi
-      ;;
+    i) input_dir=$(readlink -f "$OPTARG") ;;
     r) run=$OPTARG ;;
     s) sample_spec=$OPTARG ;;
-    o)
-      if ! output_dir=$(realpath -m "$OPTARG" 2>/dev/null); then
-        echo "Error: Invalid output directory: $OPTARG" >&2
-        exit 1
-      fi
-      ;;
+    o) output_dir=$(readlink -f "$OPTARG") ;;
     h) usage ;;
-    \?) echo "Error: Invalid option -$OPTARG" >&2; usage ;;
-    :) echo "Error: Option -$OPTARG requires an argument." >&2; usage ;;
+    \?) echo "Invalid option: -$OPTARG" >&2; usage ;;
+    :) echo "Option -$OPTARG requires an argument." >&2; usage ;;
   esac
 done
 
 # Validate required arguments
-if [[ -z "$input_dir" || -z "$run" || -z "$sample_spec" ]]; then
-  echo "Error: Missing required argument(s)." >&2
+if [ -z "$run" ]; then
+  echo "Error: 'run' parameter is required." >&2
+  usage
+fi
+
+if [ -z "$input_dir" ]; then
+  echo "Error: 'input_dir' parameter is required." >&2
+  usage
+fi
+
+if [ -z "$sample_spec" ]; then
+  echo "Error: 'sample_spec' parameter is required." >&2
   usage
 fi
 
@@ -82,17 +82,17 @@ if [ ! -d "$input_dir" ]; then
   exit 1
 fi
 
-# Expand sample list
+# Expand sample specification
 echo "Expanding sample specification: $sample_spec"
-read -ra sample_array <<< "$(expand_ranges "$sample_spec")"
+sample_array=($(expand_ranges "$sample_spec"))
 if [ ${#sample_array[@]} -eq 0 ]; then
-  echo "Error: No valid samples found after parsing sample specification." >&2
+  echo "Error: No valid samples found in specification '$sample_spec'" >&2
   exit 1
 fi
 
 # Create output directories
-mkdir -p "$output_dir/raw_data" || { echo "Error: Failed to create raw_data directory"; exit 1; }
-mkdir -p "$output_dir/fastq" || { echo "Error: Failed to create fastq directory"; exit 1; }
+mkdir -p "$output_dir/raw_data" || { echo "Error creating output directory"; exit 1; }
+mkdir -p "$output_dir/fastq" || { echo "Error creating fastq directory"; exit 1; }
 
 # Initialize samplesheet
 samplesheet="$output_dir/samplesheet.csv"
@@ -101,12 +101,16 @@ echo "sample,fastq_1,fastq_2,long_fastq" > "$samplesheet"
 # Main processing loop
 for sample_num in "${sample_array[@]}"; do
   echo "Processing sample: $sample_num"
+
+  # Initialize arrays
   r1_files=()
   r2_files=()
 
-  tmp_file=$(mktemp) || { echo "Error: Could not create temporary file"; exit 1; }
-  find "$input_dir" -type f -name "*_S${sample_num}_*.fastq.gz" > "$tmp_file" 2>/dev/null
+  # Find files using temporary file to avoid process substitution
+  tmp_file=$(mktemp)
+  find "$input_dir" -type f -name "*${sample_num}_S${sample_num}_*.fastq.gz" > "$tmp_file"
 
+  # Read found files into array
   while IFS= read -r file; do
     filename=$(basename "$file")
     if [[ "$filename" =~ _R1_ ]]; then
@@ -115,41 +119,43 @@ for sample_num in "${sample_array[@]}"; do
       r2_files+=("$file")
     fi
   done < "$tmp_file"
-  rm -f "$tmp_file"
+  rm "$tmp_file"
 
-  if [[ ${#r1_files[@]} -eq 0 || ${#r2_files[@]} -eq 0 ]]; then
-    echo "Warning: Incomplete FASTQ pair for sample $sample_num — skipping." >&2
+  # Verify file pairs
+  if [ ${#r1_files[@]} -eq 0 ]; then
+    echo "Warning: No R1 files found for sample $sample_num" >&2
+    continue
+  fi
+  if [ ${#r2_files[@]} -eq 0 ]; then
+    echo "Warning: No R2 files found for sample $sample_num" >&2
     continue
   fi
 
-  # Sort and select
+  # Sort files by lane number
   IFS=$'\n' sorted_r1=($(sort -V <<<"${r1_files[*]}"))
   IFS=$'\n' sorted_r2=($(sort -V <<<"${r2_files[*]}"))
   unset IFS
 
+  # Process first pair
   r1_file="${sorted_r1[0]}"
   r2_file="${sorted_r2[0]}"
   r1_basename=$(basename "$r1_file")
   r2_basename=$(basename "$r2_file")
 
-  cp "$r1_file" "$output_dir/fastq/" || { echo "Error copying $r1_file"; continue; }
-  cp "$r2_file" "$output_dir/fastq/" || { echo "Error copying $r2_file"; continue; }
-  cp "$r1_file" "$output_dir/raw_data/${run}-${r1_basename}" || { echo "Error copying $r1_file to raw_data"; continue; }
-  cp "$r2_file" "$output_dir/raw_data/${run}-${r2_basename}" || { echo "Error copying $r2_file to raw_data"; continue; }
+  # Copy files
+  cp "$r1_file" "$output_dir/fastq/"
+  cp "$r2_file" "$output_dir/fastq/"
+  cp "$r1_file" "$output_dir/raw_data/${run}-${r1_basename}"
+  cp "$r2_file" "$output_dir/raw_data/${run}-${r2_basename}"
 
-  echo "${run}-S${sample_num},./raw_data/${run}-${r1_basename},./raw_data/${run}-${r2_basename},NA" >> "$samplesheet"
+  # Add to samplesheet
+  echo "${run}-${sample_num},./raw_data/${run}-${r1_basename},./raw_data/${run}-${r2_basename},NA" >> "$samplesheet"
 done
 
 # Copy configuration files
 echo "Copying configuration files..."
-for file in "slurm_illumina.batch" "fluab_routine.config"; do
-  if [ -f "$script_dir/$file" ]; then
-    cp "$script_dir/$file" "$output_dir/" || echo "Warning: Failed to copy $file"
-  else
-    echo "Warning: File '$file' not found in $script_dir." >&2
-  fi
-done
+cp "$script_dir/slurm_illumina.batch" "$output_dir/"
+cp "$script_dir/fluab_routine.config" "$output_dir/"
 
-echo "✅ Processing complete."
-echo "🗂️  Output directory: $output_dir"
-echo "📄 Samplesheet: $samplesheet"
+echo "Processing complete. Results in: $output_dir"
+echo "Samplesheet created at: $samplesheet"

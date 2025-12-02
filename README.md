@@ -36,7 +36,7 @@ The pipeline takes a samplesheet and corresponding FASTQ files as input. It perf
 4. Influenza A and B reference databases: used for seeking the closest related public available sequences and used as the references in the assembly. [Go to reference database building guide](#build-influenza-a-and-b-reference-databases)
 
 >### Build Influenza A and B reference databases
->The following procedure will build the influenza A and B reference database. Then by using hte reference fasta sequences generated, the script also generated the mash sketch database (msh file) and also the snpEff flu database
+>The following procedure will build the influenza A and B reference database. Then by using the reference fasta sequences generated, the script also generated the mash sketch database (msh file) and also the snpEff flu database
 > ```
  >#create conda environment for creating database
  >mamba create -n '$env_name' mash=2.3 snpeff=5.2 vadr=1.6.4 biopython=1.84 entrez-direct=22.4 diamond=2.1.11 cd-hit=4.8.1 -y

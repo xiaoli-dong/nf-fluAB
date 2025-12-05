@@ -4,4 +4,6 @@ test/
 null*
 assets/clair3_models/
 fludb*/
+.nextflow/
+.nextflow*
 

@@ -7,7 +7,7 @@ from pathlib import Path
 from itertools import groupby
 
 
-def get_flu_typedata(type_str):
+""" def get_flu_typedata(type_str):
     switcher = {
         "H1": "flu_h1n1pdm_ha",
         "H3": "flu_h3n2_ha",
@@ -20,8 +20,22 @@ def get_flu_typedata(type_str):
     # value of passed argument if it is present
     # in dictionary otherwise second argument will
     # be assigned as default value of passed argument
-    return switcher.get(type_str, "NA")
+    return switcher.get(type_str, "NA") """
 
+def get_flu_typedata(type_str):
+    switcher = {
+        "H1": "flu/nextstrain/flu/h1n1pdm/ha",
+        "H3": "flu/nextstrain/flu/h3n2/ha",
+        "Victoria": "flu/nextstrain/flu/vic/ha",
+        "Yamagata": "flu/nextstrain/flu/yam/ha",
+        #h5nx input dataset is downloaded from https://github.com/nextstrain/nextclade_data/tree/master/data/community/moncla-lab/iav-h5/ha
+        "H5": "flu/community/moncla-lab/iav-h5/ha/all-clades"
+    }
+    # get() method of dictionary data type returns
+    # value of passed argument if it is present
+    # in dictionary otherwise second argument will
+    # be assigned as default value of passed argument
+    return switcher.get(type_str, "NA")
 
 def fasta_iter(fasta_name):
     """
@@ -107,7 +121,7 @@ def main():
         next(reader, None)  # skip the headers
         # filter out the exclusions
         for line in reader:
-            
+
             # print(line)
             # S10_T1_segment_6        GQ377078~~6~~N1 96.373  1158    39      2       205     1359    252     1409    0.0     1903    1360    1410    85      85
 

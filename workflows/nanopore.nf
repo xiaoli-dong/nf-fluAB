@@ -19,7 +19,7 @@ WorkflowNanopore.initialise(params, log, valid_params)
 //def checkPathParamList = [ params.input]
 def checkPathParamList = [
     params.input,
-    params.hostile_human_ref_minimap2,
+    //params.hostile_human_ref_minimap2,
     params.flu_primers,
     params.typing_db,
     params.flu_db_msh,
@@ -141,12 +141,12 @@ workflow NANOPORE {
     /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         sequence quality control
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//~~~~~~~~~~
     */
     if(!params.skip_nanopore_reads_qc){
         QC_NANOPORE(
             nanopore_reads,
-            PREPARE_REFERENCES.out.ch_hostile_ref_minimap2
+            //PREPARE_REFERENCES.out.ch_hostile_ref_minimap2
         )
         ch_versions = ch_versions.mix(QC_NANOPORE.out.versions)
         QC_NANOPORE.out.qc_reads
@@ -418,7 +418,7 @@ workflow NANOPORE {
             typing:  it[4] != null ? [it[0], it[4]] : [[], []]
             nextclade_tsv: it[5] != null ? [it[0], it[5].join(',')] : [[], []]
             nextclade_dbname: it[6] != null ? [it[0], it[6].join(',')] : [[], []]
-            dbver: [it[0], params.flu_db_ver],
+            dbver: [it[0], params.flu_db_ver]
             pipelinever: [it[0], "${workflow.manifest.version}"]
         }.set{
             ch_input

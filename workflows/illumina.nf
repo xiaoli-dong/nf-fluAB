@@ -19,8 +19,8 @@ WorkflowIllumina.initialise(params, log, valid_params)
 // Check input path parameters to see if they exist
 def checkPathParamList = [
     params.input,
-    params.hostile_human_ref_minimap2,
-    params.hostile_human_ref_bowtie2,
+    //params.hostile_human_ref_minimap2,
+    //params.hostile_human_ref_bowtie2,
     params.flu_primers,
     params.typing_db,
     params.flu_db_msh,
@@ -125,7 +125,7 @@ def multiqc_report = []
 
 workflow ILLUMINA {
 
-    ch_versions = Channel.empty()
+    ch_versions = channel.empty()
 
     // SUBWORKFLOW: prepare reference databases ...
     PREPARE_REFERENCES ()
@@ -147,7 +147,6 @@ workflow ILLUMINA {
         QC_ILLUMINA(
             illumina_reads,
             PREPARE_REFERENCES.out.ch_flu_primers,
-            PREPARE_REFERENCES.out.ch_hostile_ref_bowtie2
         )
         //QC_ILLUMINA.out.qc_stats.view()
         ch_versions = ch_versions.mix(QC_ILLUMINA.out.versions)
@@ -163,9 +162,9 @@ workflow ILLUMINA {
         Identify the closely related rerference through mash
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
-    ch_screen = Channel.empty()
-    ch_fasta_fai = Channel.empty()
-    ch_seq_header = Channel.empty()
+    ch_screen = channel.empty()
+    ch_fasta_fai = channel.empty()
+    ch_seq_header = channel.empty()
 
     SEEK_REFERENCES(
         illumina_reads,
@@ -226,7 +225,7 @@ workflow ILLUMINA {
         }
         .set{ch_input}
 
-    ch_coverage = Channel.empty()
+    ch_coverage = channel.empty()
     PREPROCESS_BAM(ch_input.bam_bai, ch_input.fasta, ch_input.fai, ch_input.seq_header)
      ch_versions = ch_versions.mix(PREPROCESS_BAM.out.versions)
 
@@ -305,8 +304,8 @@ workflow ILLUMINA {
         }.set{
             ch_input
         }
-    consensus_stats = Channel.empty()
-    consensus_fasta = Channel.empty()
+    consensus_stats = channel.empty()
+    consensus_fasta = channel.empty()
 
     CONSENSUS(ch_input.vcf_tbi_fasta, ch_input.mask)
      ch_versions = ch_versions.mix(CONSENSUS.out.versions)
@@ -326,7 +325,7 @@ workflow ILLUMINA {
     Typing consensus
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
-    ch_typing = Channel.empty()
+    ch_typing = channel.empty()
     CLASSIFIER_BLAST(CONSENSUS.out.fasta, PREPARE_REFERENCES.out.ch_typing_db)
     ch_versions = ch_versions.mix(CLASSIFIER_BLAST.out.versions)
     CLASSIFIER_BLAST.out.tsv
@@ -352,8 +351,8 @@ workflow ILLUMINA {
     producce consensus report
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
-    ch_nextclade_dbs = Channel.empty()
-    ch_nextclade_tsv = Channel.empty()
+    ch_nextclade_dbs = channel.empty()
+    ch_nextclade_tsv = channel.empty()
 
     ch_nextclade_dbs = CLASSIFIER_NEXTCLADE.out.dbname
         //.filter{ it != null}

@@ -225,6 +225,8 @@ workflow NANOPORE {
 
     PREPROCESS_BAM(ch_input.bam_bai, ch_input.fasta, ch_input.fai, ch_input.seq_header)
     ch_versions = ch_versions.mix(PREPROCESS_BAM.out.versions)
+
+
     PREPROCESS_BAM.out.coverage
         .filter{meta, tsv -> tsv.size() > 0 && tsv.countLines() > 0}
         .set{ch_coverage}
@@ -235,12 +237,14 @@ workflow NANOPORE {
         variant calling
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
-
+    PREPROCESS_BAM.out.bam_bai.view()
     PREPROCESS_BAM.out.bam_bai.join(ch_fasta_fai).multiMap{
             it ->
                     bam_bai: [it[0], it[1], it[2]]
                     fasta_fai: [it[0], it[3], it[4]]
             }.set { ch_input }
+
+
     VARIANTS_NANOPORE(ch_input.bam_bai, ch_input.fasta_fai)
     ch_versions = ch_versions.mix(VARIANTS_NANOPORE.out.versions)
 
@@ -402,7 +406,7 @@ workflow NANOPORE {
         .join(ch_typing, remainder: true)//.view()
         .join(ch_nextclade_tsv, remainder: true)//.view()
         .join(ch_nextclade_dbs, remainder: true)//.view()
-        .view()
+        //.view()
 
     // ch_screen
     //     .join(ch_coverage, remainder: true)//.view()

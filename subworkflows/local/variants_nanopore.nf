@@ -11,6 +11,7 @@ workflow VARIANTS_NANOPORE {
     main:
         ch_versions = Channel.empty()
         vcf = Channel.empty()
+        bam_bai.view()
         /*
             Clair3 was seeing no read at 2265. Clair3 filters the alignments with the following four flags:
             read unmapped (0x4)

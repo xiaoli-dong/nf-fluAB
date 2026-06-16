@@ -45,8 +45,11 @@ workflow PREPROCESS_BAM {
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     */
     SAMTOOLS_VIEW(bam_bai, fasta, [])
-    ch_bam_bai = bam_bai
-    SAMTOOLS_VIEW.out.bam
+    //bam_bai.view()
+    SAMTOOLS_VIEW.out.bam.view()
+    SAMTOOLS_VIEW.out.csi.view()
+
+    /* SAMTOOLS_VIEW.out.bam
         .join(fasta)
         .join(fai)
         .multiMap{
@@ -56,14 +59,18 @@ workflow PREPROCESS_BAM {
                 fai: [it[0], it[3]]
         }
         .set{ch_input}
-
+    */
+    ch_bam_bai = SAMTOOLS_VIEW.out.bam.join(SAMTOOLS_VIEW.out.csi) //[meta, bam, csi]
+    //ch_bam_bai.view()
 
     ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions)
-    if(params.platform == 'illumina'){
+
+    // removed on June16, 2026. I feel this is unnecessary because samtools veiw with -F 3844 will remove all the secondary, supplementary, soft/hard clipped reads, and duplicate reads.
+    /* if(params.platform == 'illumina'){
         //all the duplicates will be removed from the output
         BAM_MARKDUPLICATES_PICARD(ch_input.bam_bai, ch_input.fasta, ch_input.fai)
         ch_bam_bai = BAM_MARKDUPLICATES_PICARD.out.bam.join( BAM_MARKDUPLICATES_PICARD.out.bai)
-    }
+    } */
     SAMTOOLS_COVERAGE(ch_bam_bai)
     ch_versions = ch_versions.mix(SAMTOOLS_COVERAGE.out.versions)
 

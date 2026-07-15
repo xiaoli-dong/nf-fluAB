@@ -1,6 +1,6 @@
 # nf-fluAB Pipeline
 
-> 🕒 **Last updated:** April 14, 2025
+> 🕒 **Last updated:** July 14, 2026
 
 ## Introduction
 
